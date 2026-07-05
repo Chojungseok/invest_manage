@@ -234,83 +234,6 @@ const DEFAULT_SETTINGS = {
   replayReminderEnabled:true, replayPeriods:[1,3,6]
 };
 
-function seedData(){
-  const A = [
-    {id:'a1', accountType:'ISA', assetType:'ETF', market:'국내', currency:'KRW', name:'TIGER 미국S&P500', ticker:'360750', quantity:380, averagePrice:19800, currentPrice:21850, exchangeRate:1, memo:'매월 적립식 매수 대상', createdAt:'2026-01-15', updatedAt:'2026-06-25'},
-    {id:'a2', accountType:'연금저축', assetType:'ETF', market:'국내', currency:'KRW', name:'KODEX 미국나스닥100', ticker:'379810', quantity:150, averagePrice:17850, currentPrice:19900, exchangeRate:1, memo:'연금계좌 성장형 코어', createdAt:'2026-02-01', updatedAt:'2026-06-30'},
-    {id:'a3', accountType:'일반계좌', assetType:'개별주', market:'국내', currency:'KRW', name:'삼성전자', ticker:'005930', quantity:60, averagePrice:71200, currentPrice:78300, exchangeRate:1, memo:'반도체 업황 회복 가설', createdAt:'2026-02-10', updatedAt:'2026-06-30'},
-    {id:'a4', accountType:'해외계좌', assetType:'배당주', market:'미국', currency:'USD', name:'SCHD', ticker:'SCHD', quantity:45, averagePrice:27.4, currentPrice:29.1, exchangeRate:1380, memo:'배당 성장 코어 자산', createdAt:'2026-03-05', updatedAt:'2026-06-30'},
-    {id:'a5', accountType:'일반계좌', assetType:'테마주', market:'국내', currency:'KRW', name:'두산에너빌리티', ticker:'034020', quantity:40, averagePrice:21000, currentPrice:19150, exchangeRate:1, memo:'원전 테마, 비중 관리 필요', createdAt:'2026-04-08', updatedAt:'2026-06-30'},
-    {id:'a6', accountType:'현금', assetType:'현금', market:'국내', currency:'KRW', name:'CMA 예수금', ticker:'-', quantity:1, averagePrice:3200000, currentPrice:3200000, exchangeRate:1, memo:'매수 대기 자금', createdAt:'2026-01-01', updatedAt:'2026-06-30'}
-  ];
-  const R = [
-    {id:'r1', assetId:'a1', name:'TIGER 미국S&P500', ticker:'360750', actionType:'매수', date:'2026-01-15', amount:1950000, quantity:100, price:19500,
-     reason:'미국 대형주 장기 우상향에 대한 적립식 투자. 지수 추종으로 개별 종목 리스크 회피.', hypothesis:'미국 S&P500은 장기적으로 연평균 7~10% 성장한다.',
-     risk:'단기 고점 매수 가능성, 환율 변동', emotion:'기계적 매수', investmentPeriod:'10년 이상', targetReturn:'연 8%',
-     reviewCriteria:'지수 -20% 이상 하락 시 분할매수 여부 재검토', sellCriteria:'목표 자산 도달 또는 은퇴 시점', memo:'', createdAt:'2026-01-15', updatedAt:'2026-01-15'},
-    {id:'r2', assetId:'a3', name:'삼성전자', ticker:'005930', actionType:'매수', date:'2026-02-10', amount:2136000, quantity:30, price:71200,
-     reason:'HBM 경쟁력 회복과 반도체 업황 사이클 상승 초입 판단.', hypothesis:'2026년 하반기 메모리 가격 상승으로 실적 개선.',
-     risk:'경쟁사 대비 기술 격차 지속, 업황 회복 지연', emotion:'확신', investmentPeriod:'1~2년', targetReturn:'25%',
-     reviewCriteria:'분기 실적에서 HBM 매출 성장 확인', sellCriteria:'목표가 95,000원 도달 또는 가설 훼손 시', memo:'', createdAt:'2026-02-10', updatedAt:'2026-02-10'},
-    {id:'r3', assetId:'a2', name:'KODEX 미국나스닥100', ticker:'379810', actionType:'추가매수', date:'2026-03-12', amount:895000, quantity:50, price:17900,
-     reason:'연금계좌 정기 적립. 조정 구간에서 계획된 추가매수.', hypothesis:'기술주 중심 장기 성장 지속.',
-     risk:'금리 재상승 시 밸류에이션 부담', emotion:'기계적 매수', investmentPeriod:'10년 이상', targetReturn:'연 10%',
-     reviewCriteria:'연 1회 비중 점검', sellCriteria:'은퇴 시점', memo:'', createdAt:'2026-03-12', updatedAt:'2026-03-12'},
-    {id:'r4', assetId:'a5', name:'두산에너빌리티', ticker:'034020', actionType:'매수', date:'2026-04-08', amount:840000, quantity:40, price:21000,
-     reason:'원전 수주 뉴스 급등을 보고 매수. 추가 상승 기대.', hypothesis:'글로벌 원전 발주 확대로 수주 증가.',
-     risk:'테마 과열, 단기 급등 후 조정 가능성', emotion:'FOMO', investmentPeriod:'6개월', targetReturn:'30%',
-     reviewCriteria:'', sellCriteria:'-15% 손절', memo:'뉴스 보고 당일 매수함', createdAt:'2026-04-08', updatedAt:'2026-04-08'},
-    {id:'r5', assetId:'a4', name:'SCHD', ticker:'SCHD', actionType:'매수', date:'2026-05-14', amount:759000, quantity:20, price:27.5,
-     reason:'배당 성장 자산 확대. 월 배당 현금흐름 구축 목적.', hypothesis:'배당 성장률 연 10% 내외 유지.',
-     risk:'환율 하락 시 원화 환산 수익 감소', emotion:'확신', investmentPeriod:'10년 이상', targetReturn:'배당 포함 연 9%',
-     reviewCriteria:'연 1회 배당 성장률 점검', sellCriteria:'배당 삭감 시 재검토', memo:'환율 1,380원 적용', createdAt:'2026-05-14', updatedAt:'2026-05-14'},
-    {id:'r6', assetId:null, name:'현대차', ticker:'005380', actionType:'관망', date:'2026-06-09', amount:0, quantity:0, price:0,
-     reason:'목표 진입가 175,000원 미도달. 조건 충족 전까지 관망.', hypothesis:'하이브리드 판매 호조로 실적 방어.',
-     risk:'미국 관세 정책 변동', emotion:'중립', investmentPeriod:'2년', targetReturn:'20%',
-     reviewCriteria:'분기 실적 발표 후 재점검', sellCriteria:'', memo:'관심종목 유지', createdAt:'2026-06-09', updatedAt:'2026-06-09'},
-    {id:'r7', assetId:'a1', name:'TIGER 미국S&P500', ticker:'360750', actionType:'추가매수', date:'2026-06-25', amount:1278000, quantity:60, price:21300,
-     reason:'월간계획에 따른 정기 매수. 목표 비중 대비 부족분 채움.', hypothesis:'미국 S&P500 장기 우상향 유지.',
-     risk:'단기 변동성', emotion:'기계적 매수', investmentPeriod:'10년 이상', targetReturn:'연 8%',
-     reviewCriteria:'월간계획 점검 시', sellCriteria:'목표 자산 도달', memo:'', createdAt:'2026-06-25', updatedAt:'2026-06-25'}
-  ];
-  const S = [
-    {id:'j1', investmentRecordId:'r1', reasonScore:20, periodScore:10, riskScore:12, reviewCriteriaScore:15, portfolioRatioScore:13, emotionScore:15, targetReturnScore:10, totalScore:95, interpretation:'매수 판단 양호', createdAt:'2026-01-15'},
-    {id:'j2', investmentRecordId:'r2', reasonScore:18, periodScore:10, riskScore:12, reviewCriteriaScore:12, portfolioRatioScore:11, emotionScore:10, targetReturnScore:5, totalScore:78, interpretation:'소액 또는 분할매수 권장', createdAt:'2026-02-10'},
-    {id:'j3', investmentRecordId:'r4', reasonScore:8, periodScore:5, riskScore:8, reviewCriteriaScore:0, portfolioRatioScore:9, emotionScore:5, targetReturnScore:3, totalScore:38, interpretation:'감정 매매 가능성 높음', createdAt:'2026-04-08'}
-  ];
-  const RP = [
-    {id:'p1', investmentRecordId:'r1', replayType:'1개월', scheduledDate:'2026-02-15', completedDate:'2026-02-16', hypothesisStatus:'유지', currentReturn:3.2, profitLossReason:'시장 전체 상승', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'계획대로 적립 지속.', updatedJudgmentScore:95, createdAt:'2026-01-15', updatedAt:'2026-02-16'},
-    {id:'p2', investmentRecordId:'r1', replayType:'3개월', scheduledDate:'2026-04-15', completedDate:'2026-04-15', hypothesisStatus:'유지', currentReturn:7.8, profitLossReason:'시장 전체 상승', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'추가매수', replayMemo:'가설 유지. 정기 매수 계속.', updatedJudgmentScore:95, createdAt:'2026-01-15', updatedAt:'2026-04-15'},
-    {id:'p3', investmentRecordId:'r1', replayType:'6개월', scheduledDate:'2026-07-15', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-01-15', updatedAt:'2026-01-15'},
-    {id:'p4', investmentRecordId:'r2', replayType:'1개월', scheduledDate:'2026-03-10', completedDate:'2026-03-11', hypothesisStatus:'유지', currentReturn:4.1, profitLossReason:'실적', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'실적 발표 양호.', updatedJudgmentScore:80, createdAt:'2026-02-10', updatedAt:'2026-03-11'},
-    {id:'p5', investmentRecordId:'r2', replayType:'3개월', scheduledDate:'2026-05-10', completedDate:'2026-05-12', hypothesisStatus:'유지', currentReturn:9.9, profitLossReason:'실적', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'HBM 매출 성장 확인. 가설 유효.', updatedJudgmentScore:82, createdAt:'2026-02-10', updatedAt:'2026-05-12'},
-    {id:'p6', investmentRecordId:'r2', replayType:'6개월', scheduledDate:'2026-08-10', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-02-10', updatedAt:'2026-02-10'},
-    {id:'p7', investmentRecordId:'r4', replayType:'1개월', scheduledDate:'2026-05-08', completedDate:'2026-05-09', hypothesisStatus:'일부 훼손', currentReturn:-6.5, profitLossReason:'테마 과열', followedOriginalCriteria:'아니오', emotionalTrading:'예', nextAction:'관망', replayMemo:'뉴스 보고 고점 매수. 재검토 기준도 없었음. 반성 필요.', updatedJudgmentScore:35, createdAt:'2026-04-08', updatedAt:'2026-05-09'},
-    {id:'p8', investmentRecordId:'r4', replayType:'3개월', scheduledDate:'2026-07-08', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-04-08', updatedAt:'2026-04-08'},
-    {id:'p9', investmentRecordId:'r4', replayType:'6개월', scheduledDate:'2026-10-08', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-04-08', updatedAt:'2026-04-08'},
-    {id:'p10', investmentRecordId:'r5', replayType:'1개월', scheduledDate:'2026-06-14', completedDate:'2026-06-15', hypothesisStatus:'유지', currentReturn:5.4, profitLossReason:'실적', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'배당 일정 확인. 장기 보유.', updatedJudgmentScore:88, createdAt:'2026-05-14', updatedAt:'2026-06-15'},
-    {id:'p11', investmentRecordId:'r5', replayType:'3개월', scheduledDate:'2026-08-14', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-05-14', updatedAt:'2026-05-14'},
-    {id:'p12', investmentRecordId:'r5', replayType:'6개월', scheduledDate:'2026-11-14', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-05-14', updatedAt:'2026-05-14'}
-  ];
-  const W = [
-    {id:'w1', name:'TIGER 미국배당다우존스', ticker:'458730', market:'국내', theme:'배당 성장', reason:'월배당 현금흐름 확대', targetEntryPrice:11500, currentPrice:12100, buyCondition:'11,500원 이하 도달 시 분할매수 검토', risk:'금리 인하 지연', priority:'A', status:'관찰', memo:'', createdAt:'2026-05-01', updatedAt:'2026-06-30'},
-    {id:'w2', name:'현대차', ticker:'005380', market:'국내', theme:'자동차', reason:'하이브리드 판매 호조, 저평가 구간 판단', targetEntryPrice:175000, currentPrice:182000, buyCondition:'175,000원 이하 + 분기 실적 확인', risk:'관세 정책 변동', priority:'B', status:'매수 후보', memo:'실적 발표 7월 말', createdAt:'2026-06-09', updatedAt:'2026-06-30'},
-    {id:'w3', name:'팔란티어', ticker:'PLTR', market:'미국', theme:'AI 소프트웨어', reason:'정부·기업 AI 수요 성장', targetEntryPrice:120, currentPrice:158, buyCondition:'120달러 이하 + 밸류에이션 재점검', risk:'고평가 논란, 변동성 큼', priority:'C', status:'보류', memo:'현재 밸류에이션 부담', createdAt:'2026-04-20', updatedAt:'2026-06-30'}
-  ];
-  const PL = [
-    {id:'m1', yearMonth:'2026-07', monthlyBudget:1500000, targetEtfRatio:50, targetStockRatio:25, targetThemeRatio:5, targetCashRatio:20,
-     priority:'S&P500 ETF 비중 채우기, 테마주 추가매수 제외', plannedInvestmentDate:'2026-07-25', memo:'월급일 직후 정기 매수', createdAt:'2026-07-01', updatedAt:'2026-07-01'}
-  ];
-  const SN = [
-    {yearMonth:'2026-01', totalAsset:17400000},
-    {yearMonth:'2026-02', totalAsset:18300000},
-    {yearMonth:'2026-03', totalAsset:19200000},
-    {yearMonth:'2026-04', totalAsset:19000000},
-    {yearMonth:'2026-05', totalAsset:20300000},
-    {yearMonth:'2026-06', totalAsset:21200000}
-  ];
-  return {settings:{...DEFAULT_SETTINGS}, assets:A, records:R, scores:S, replays:RP, watchlist:W, plans:PL, snapshots:SN};
-}
 
 let DB;
 function loadDB(){
@@ -318,7 +241,7 @@ function loadDB(){
     const raw = localStorage.getItem(userDbKey());
     if(raw){ DB = JSON.parse(raw); DB.settings = {...DEFAULT_SETTINGS, ...DB.settings}; return; }
   }catch(e){ console.warn('DB load 실패', e); }
-  DB = seedData();
+  DB = {settings:{...DEFAULT_SETTINGS}, assets:[], records:[], scores:[], replays:[], watchlist:[], plans:[], snapshots:[]};
   saveDB();
 }
 function saveDB(){
@@ -1238,10 +1161,9 @@ PAGES.settings = {
           </div>
         </div>
         <div class="card"><h3>데이터 초기화</h3>
-          <p class="muted" style="font-size:13px;margin-bottom:14px">샘플 데이터를 삭제하고 빈 상태로 시작하거나, 샘플 데이터를 다시 불러올 수 있습니다.</p>
+          <p class="muted" style="font-size:13px;margin-bottom:14px">모든 데이터를 삭제하고 빈 상태로 시작합니다. 삭제 전 JSON 백업을 권장합니다.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-danger" onclick="clearAll()">모든 데이터 삭제 (빈 상태로)</button>
-            <button class="btn" onclick="resetSeed()">샘플 데이터로 초기화</button>
           </div>
         </div>
       </div>
@@ -1278,10 +1200,6 @@ function clearAll(){
   if(!confirm('모든 데이터를 삭제하고 빈 상태로 시작할까요? 삭제 전 백업을 권장합니다.')) return;
   DB = {settings:{...DEFAULT_SETTINGS}, assets:[], records:[], scores:[], replays:[], watchlist:[], plans:[], snapshots:[]};
   saveDB(); route();
-}
-function resetSeed(){
-  if(!confirm('현재 데이터를 삭제하고 샘플 데이터로 초기화할까요?')) return;
-  DB = seedData(); saveDB(); route();
 }
 
 /* ═══════════════ 자동매매 (준비중) ═══════════════ */
