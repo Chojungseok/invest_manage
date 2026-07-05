@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>투자 OS — 개인 투자 판단 관리</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6fa; --card:#ffffff; --border:#e5e9f0; --blue:#2563eb; --blue-dark:#1d4ed8;
+  --blue-light:#eff4ff; --text:#1e293b; --muted:#64748b; --green:#16a34a; --green-bg:#f0fdf4;
+  --red:#dc2626; --red-bg:#fef2f2; --orange:#ea580c; --orange-bg:#fff7ed;
+  --radius:14px; --shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.55}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--text)}
+
+/* ── 레이아웃 ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:232px;background:#fff;border-right:1px solid var(--border);
+  padding:20px 14px;display:flex;flex-direction:column;gap:2px;z-index:50;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;padding:6px 10px 20px;font-size:19px;font-weight:800;color:var(--blue)}
+.logo .logo-mark{width:32px;height:32px;border-radius:9px;background:var(--blue);color:#fff;display:flex;
+  align-items:center;justify-content:center;font-size:16px;font-weight:800}
+.logo small{display:block;font-size:11px;font-weight:500;color:var(--muted)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);
+  font-weight:600;text-decoration:none;font-size:14px;transition:.15s}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--blue-light);color:var(--blue)}
+.nav-item .ico{width:20px;text-align:center;font-size:15px}
+.nav-item .soon{margin-left:auto;font-size:10px;background:var(--orange-bg);color:var(--orange);
+  padding:2px 7px;border-radius:20px;font-weight:700}
+.main{margin-left:232px;padding:26px 30px 60px;max-width:1280px}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.page-head h1{font-size:22px;font-weight:800}
+.page-head p{color:var(--muted);margin-top:3px;font-size:13px}
+.page-head .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── 카드/그리드 ── */
+.grid{display:grid;gap:16px}
+.grid.cols4{grid-template-columns:repeat(4,1fr)}
+.grid.cols3{grid-template-columns:repeat(3,1fr)}
+.grid.cols2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:20px}
+.card h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card h3 a{font-size:12px;color:var(--blue);text-decoration:none;font-weight:600}
+.stat-card .label{font-size:13px;color:var(--muted);font-weight:600}
+.stat-card .value{font-size:24px;font-weight:800;margin:6px 0 4px;letter-spacing:-.02em}
+.stat-card .sub{font-size:12px;color:var(--muted)}
+.stat-card .delta{font-size:12px;font-weight:700}
+.up{color:var(--green)} .down{color:var(--red)} .warn{color:var(--orange)}
+.muted{color:var(--muted)}
+
+/* ── 버튼/뱃지/폼 ── */
+.btn{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:9px;
+  padding:8px 14px;font-size:13px;font-weight:600;transition:.15s}
+.btn:hover{border-color:#cbd5e1;background:#f8fafc}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dark);border-color:var(--blue-dark)}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.btn-danger{color:var(--red)}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-orange{background:var(--orange-bg);color:var(--orange)}
+.badge-gray{background:#f1f5f9;color:var(--muted)}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 14px}
+.form-grid .full{grid-column:1/-1}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:9px;
+  padding:9px 11px;background:#fff;outline:none;transition:.15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.field textarea{resize:vertical;min-height:64px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filters select{border:1px solid var(--border);border-radius:9px;padding:7px 10px;background:#fff;font-size:13px}
+
+/* ── 테이블 ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+th{color:var(--muted);font-size:12px;font-weight:700;text-align:left;padding:10px 10px;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafbfd}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── 모달 ── */
+.modal-back{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;display:flex;
+  align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:640px;padding:24px;
+  box-shadow:0 20px 50px rgba(15,23,42,.25)}
+.modal h2{font-size:17px;font-weight:800;margin-bottom:18px}
+.modal .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.hidden{display:none!important}
+
+/* ── 기타 컴포넌트 ── */
+.progress{height:8px;background:#eef2f7;border-radius:10px;overflow:hidden}
+.progress>div{height:100%;background:var(--blue);border-radius:10px;transition:.3s}
+.list-item{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.list-item:last-child{border-bottom:none}
+.empty{color:var(--muted);text-align:center;padding:28px 10px;font-size:13px}
+.chart-box{position:relative;height:230px}
+.notice{background:var(--blue-light);border:1px solid #dbe7ff;color:#1e40af;border-radius:10px;
+  padding:12px 14px;font-size:13px;margin-bottom:16px}
+.score-badge{font-size:26px;font-weight:800}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.replay-step{display:flex;gap:6px;align-items:center;font-size:12px;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;background:#d7dee9;display:inline-block}
+.dot.done{background:var(--green)} .dot.due{background:var(--orange)}
+.mobile-topbar{display:none}
+
+/* ── 하단 탭(모바일) ── */
+.bottom-tabs{display:none;position:fixed;left:0;right:0;bottom:0;background:#fff;
+  border-top:1px solid var(--border);z-index:60;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.bottom-tabs a{flex:1;text-align:center;text-decoration:none;color:var(--muted);font-size:10.5px;font-weight:700}
+.bottom-tabs a .t-ico{display:block;font-size:19px;margin-bottom:1px}
+.bottom-tabs a.active{color:var(--blue)}
+
+@media(max-width:1100px){
+  .grid.cols4{grid-template-columns:repeat(2,1fr)}
+  .grid.cols3{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:16px 14px 90px}
+  .bottom-tabs{display:flex}
+  .grid.cols2{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .mobile-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .mobile-topbar .m-logo{font-size:17px;font-weight:800;color:var(--blue)}
+  .stat-card .value{font-size:20px}
+  .page-head h1{font-size:19px}
+}
+@media(max-width:560px){
+  .grid.cols4,.grid.cols3{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<nav class="sidebar" id="sidebar">
+  <div class="logo"><span class="logo-mark">투</span><span>투자 OS<small>투자 판단 관리 시스템</small></span></div>
+  <a class="nav-item" href="#home" data-page="home"><span class="ico">🏠</span>홈</a>
+  <a class="nav-item" href="#portfolio" data-page="portfolio"><span class="ico">💼</span>포트폴리오</a>
+  <a class="nav-item" href="#records" data-page="records"><span class="ico">📝</span>투자기록</a>
+  <a class="nav-item" href="#score" data-page="score"><span class="ico">🎯</span>판단점수</a>
+  <a class="nav-item" href="#replay" data-page="replay"><span class="ico">🔁</span>판단 리플레이</a>
+  <a class="nav-item" href="#watchlist" data-page="watchlist"><span class="ico">⭐</span>관심종목</a>
+  <a class="nav-item" href="#plan" data-page="plan"><span class="ico">📅</span>월간계획</a>
+  <a class="nav-item" href="#stats" data-page="stats"><span class="ico">📊</span>통계</a>
+  <a class="nav-item" href="#settings" data-page="settings"><span class="ico">⚙️</span>설정</a>
+  <a class="nav-item" href="#auto" data-page="auto"><span class="ico">🤖</span>자동매매<span class="soon">준비중</span></a>
+</nav>
+
+<main class="main">
+  <div class="mobile-topbar"><span class="m-logo">투자 OS</span><span class="muted" id="mobileDate"></span></div>
+  <div id="app"></div>
+</main>
+
+<nav class="bottom-tabs" id="bottomTabs">
+  <a href="#home" data-page="home"><span class="t-ico">🏠</span>홈</a>
+  <a href="#portfolio" data-page="portfolio"><span class="t-ico">💼</span>포트폴리오</a>
+  <a href="#records" data-page="records"><span class="t-ico">📝</span>기록</a>
+  <a href="#replay" data-page="replay"><span class="t-ico">🔁</span>리플레이</a>
+  <a href="#stats" data-page="stats"><span class="t-ico">📊</span>통계</a>
+</nav>
+
+<div class="modal-back hidden" id="modalBack"><div class="modal" id="modalBox"></div></div>
+<script>
+/* ═══════════════ 투자 OS — 데이터 계층 ═══════════════ */
+const DB_KEY = 'investOS_v1';
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function ym(d){ return (d||todayStr()).slice(0,7); }
+function addMonths(dateStr, m){
+  const [y, mo, day] = dateStr.split('-').map(Number);
+  const d = new Date(y, mo - 1 + m, 1);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+const DEFAULT_SETTINGS = {
+  id:'s1', yearlyTargetAsset:30000000, monthlyInvestmentTarget:1500000, monthlyDividendTarget:100000,
+  targetEtfRatio:50, targetStockRatio:25, targetThemeRatio:5, targetCashRatio:20,
+  maxSingleStockRatio:20, maxThemeRatio:10, baseCurrency:'KRW', exchangeRate:1380,
+  replayReminderEnabled:true, replayPeriods:[1,3,6]
+};
+
+function seedData(){
+  const A = [
+    {id:'a1', accountType:'ISA', assetType:'ETF', market:'국내', currency:'KRW', name:'TIGER 미국S&P500', ticker:'360750', quantity:380, averagePrice:19800, currentPrice:21850, exchangeRate:1, memo:'매월 적립식 매수 대상', createdAt:'2026-01-15', updatedAt:'2026-06-25'},
+    {id:'a2', accountType:'연금저축', assetType:'ETF', market:'국내', currency:'KRW', name:'KODEX 미국나스닥100', ticker:'379810', quantity:150, averagePrice:17850, currentPrice:19900, exchangeRate:1, memo:'연금계좌 성장형 코어', createdAt:'2026-02-01', updatedAt:'2026-06-30'},
+    {id:'a3', accountType:'일반계좌', assetType:'개별주', market:'국내', currency:'KRW', name:'삼성전자', ticker:'005930', quantity:60, averagePrice:71200, currentPrice:78300, exchangeRate:1, memo:'반도체 업황 회복 가설', createdAt:'2026-02-10', updatedAt:'2026-06-30'},
+    {id:'a4', accountType:'해외계좌', assetType:'배당주', market:'미국', currency:'USD', name:'SCHD', ticker:'SCHD', quantity:45, averagePrice:27.4, currentPrice:29.1, exchangeRate:1380, memo:'배당 성장 코어 자산', createdAt:'2026-03-05', updatedAt:'2026-06-30'},
+    {id:'a5', accountType:'일반계좌', assetType:'테마주', market:'국내', currency:'KRW', name:'두산에너빌리티', ticker:'034020', quantity:40, averagePrice:21000, currentPrice:19150, exchangeRate:1, memo:'원전 테마, 비중 관리 필요', createdAt:'2026-04-08', updatedAt:'2026-06-30'},
+    {id:'a6', accountType:'현금', assetType:'현금', market:'국내', currency:'KRW', name:'CMA 예수금', ticker:'-', quantity:1, averagePrice:3200000, currentPrice:3200000, exchangeRate:1, memo:'매수 대기 자금', createdAt:'2026-01-01', updatedAt:'2026-06-30'}
+  ];
+  const R = [
+    {id:'r1', assetId:'a1', name:'TIGER 미국S&P500', ticker:'360750', actionType:'매수', date:'2026-01-15', amount:1950000, quantity:100, price:19500,
+     reason:'미국 대형주 장기 우상향에 대한 적립식 투자. 지수 추종으로 개별 종목 리스크 회피.', hypothesis:'미국 S&P500은 장기적으로 연평균 7~10% 성장한다.',
+     risk:'단기 고점 매수 가능성, 환율 변동', emotion:'기계적 매수', investmentPeriod:'10년 이상', targetReturn:'연 8%',
+     reviewCriteria:'지수 -20% 이상 하락 시 분할매수 여부 재검토', sellCriteria:'목표 자산 도달 또는 은퇴 시점', memo:'', createdAt:'2026-01-15', updatedAt:'2026-01-15'},
+    {id:'r2', assetId:'a3', name:'삼성전자', ticker:'005930', actionType:'매수', date:'2026-02-10', amount:2136000, quantity:30, price:71200,
+     reason:'HBM 경쟁력 회복과 반도체 업황 사이클 상승 초입 판단.', hypothesis:'2026년 하반기 메모리 가격 상승으로 실적 개선.',
+     risk:'경쟁사 대비 기술 격차 지속, 업황 회복 지연', emotion:'확신', investmentPeriod:'1~2년', targetReturn:'25%',
+     reviewCriteria:'분기 실적에서 HBM 매출 성장 확인', sellCriteria:'목표가 95,000원 도달 또는 가설 훼손 시', memo:'', createdAt:'2026-02-10', updatedAt:'2026-02-10'},
+    {id:'r3', assetId:'a2', name:'KODEX 미국나스닥100', ticker:'379810', actionType:'추가매수', date:'2026-03-12', amount:895000, quantity:50, price:17900,
+     reason:'연금계좌 정기 적립. 조정 구간에서 계획된 추가매수.', hypothesis:'기술주 중심 장기 성장 지속.',
+     risk:'금리 재상승 시 밸류에이션 부담', emotion:'기계적 매수', investmentPeriod:'10년 이상', targetReturn:'연 10%',
+     reviewCriteria:'연 1회 비중 점검', sellCriteria:'은퇴 시점', memo:'', createdAt:'2026-03-12', updatedAt:'2026-03-12'},
+    {id:'r4', assetId:'a5', name:'두산에너빌리티', ticker:'034020', actionType:'매수', date:'2026-04-08', amount:840000, quantity:40, price:21000,
+     reason:'원전 수주 뉴스 급등을 보고 매수. 추가 상승 기대.', hypothesis:'글로벌 원전 발주 확대로 수주 증가.',
+     risk:'테마 과열, 단기 급등 후 조정 가능성', emotion:'FOMO', investmentPeriod:'6개월', targetReturn:'30%',
+     reviewCriteria:'', sellCriteria:'-15% 손절', memo:'뉴스 보고 당일 매수함', createdAt:'2026-04-08', updatedAt:'2026-04-08'},
+    {id:'r5', assetId:'a4', name:'SCHD', ticker:'SCHD', actionType:'매수', date:'2026-05-14', amount:759000, quantity:20, price:27.5,
+     reason:'배당 성장 자산 확대. 월 배당 현금흐름 구축 목적.', hypothesis:'배당 성장률 연 10% 내외 유지.',
+     risk:'환율 하락 시 원화 환산 수익 감소', emotion:'확신', investmentPeriod:'10년 이상', targetReturn:'배당 포함 연 9%',
+     reviewCriteria:'연 1회 배당 성장률 점검', sellCriteria:'배당 삭감 시 재검토', memo:'환율 1,380원 적용', createdAt:'2026-05-14', updatedAt:'2026-05-14'},
+    {id:'r6', assetId:null, name:'현대차', ticker:'005380', actionType:'관망', date:'2026-06-09', amount:0, quantity:0, price:0,
+     reason:'목표 진입가 175,000원 미도달. 조건 충족 전까지 관망.', hypothesis:'하이브리드 판매 호조로 실적 방어.',
+     risk:'미국 관세 정책 변동', emotion:'중립', investmentPeriod:'2년', targetReturn:'20%',
+     reviewCriteria:'분기 실적 발표 후 재점검', sellCriteria:'', memo:'관심종목 유지', createdAt:'2026-06-09', updatedAt:'2026-06-09'},
+    {id:'r7', assetId:'a1', name:'TIGER 미국S&P500', ticker:'360750', actionType:'추가매수', date:'2026-06-25', amount:1278000, quantity:60, price:21300,
+     reason:'월간계획에 따른 정기 매수. 목표 비중 대비 부족분 채움.', hypothesis:'미국 S&P500 장기 우상향 유지.',
+     risk:'단기 변동성', emotion:'기계적 매수', investmentPeriod:'10년 이상', targetReturn:'연 8%',
+     reviewCriteria:'월간계획 점검 시', sellCriteria:'목표 자산 도달', memo:'', createdAt:'2026-06-25', updatedAt:'2026-06-25'}
+  ];
+  const S = [
+    {id:'j1', investmentRecordId:'r1', reasonScore:20, periodScore:10, riskScore:12, reviewCriteriaScore:15, portfolioRatioScore:13, emotionScore:15, targetReturnScore:10, totalScore:95, interpretation:'매수 판단 양호', createdAt:'2026-01-15'},
+    {id:'j2', investmentRecordId:'r2', reasonScore:18, periodScore:10, riskScore:12, reviewCriteriaScore:12, portfolioRatioScore:11, emotionScore:10, targetReturnScore:5, totalScore:78, interpretation:'소액 또는 분할매수 권장', createdAt:'2026-02-10'},
+    {id:'j3', investmentRecordId:'r4', reasonScore:8, periodScore:5, riskScore:8, reviewCriteriaScore:0, portfolioRatioScore:9, emotionScore:5, targetReturnScore:3, totalScore:38, interpretation:'감정 매매 가능성 높음', createdAt:'2026-04-08'}
+  ];
+  const RP = [
+    {id:'p1', investmentRecordId:'r1', replayType:'1개월', scheduledDate:'2026-02-15', completedDate:'2026-02-16', hypothesisStatus:'유지', currentReturn:3.2, profitLossReason:'시장 전체 상승', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'계획대로 적립 지속.', updatedJudgmentScore:95, createdAt:'2026-01-15', updatedAt:'2026-02-16'},
+    {id:'p2', investmentRecordId:'r1', replayType:'3개월', scheduledDate:'2026-04-15', completedDate:'2026-04-15', hypothesisStatus:'유지', currentReturn:7.8, profitLossReason:'시장 전체 상승', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'추가매수', replayMemo:'가설 유지. 정기 매수 계속.', updatedJudgmentScore:95, createdAt:'2026-01-15', updatedAt:'2026-04-15'},
+    {id:'p3', investmentRecordId:'r1', replayType:'6개월', scheduledDate:'2026-07-15', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-01-15', updatedAt:'2026-01-15'},
+    {id:'p4', investmentRecordId:'r2', replayType:'1개월', scheduledDate:'2026-03-10', completedDate:'2026-03-11', hypothesisStatus:'유지', currentReturn:4.1, profitLossReason:'실적', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'실적 발표 양호.', updatedJudgmentScore:80, createdAt:'2026-02-10', updatedAt:'2026-03-11'},
+    {id:'p5', investmentRecordId:'r2', replayType:'3개월', scheduledDate:'2026-05-10', completedDate:'2026-05-12', hypothesisStatus:'유지', currentReturn:9.9, profitLossReason:'실적', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'HBM 매출 성장 확인. 가설 유효.', updatedJudgmentScore:82, createdAt:'2026-02-10', updatedAt:'2026-05-12'},
+    {id:'p6', investmentRecordId:'r2', replayType:'6개월', scheduledDate:'2026-08-10', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-02-10', updatedAt:'2026-02-10'},
+    {id:'p7', investmentRecordId:'r4', replayType:'1개월', scheduledDate:'2026-05-08', completedDate:'2026-05-09', hypothesisStatus:'일부 훼손', currentReturn:-6.5, profitLossReason:'테마 과열', followedOriginalCriteria:'아니오', emotionalTrading:'예', nextAction:'관망', replayMemo:'뉴스 보고 고점 매수. 재검토 기준도 없었음. 반성 필요.', updatedJudgmentScore:35, createdAt:'2026-04-08', updatedAt:'2026-05-09'},
+    {id:'p8', investmentRecordId:'r4', replayType:'3개월', scheduledDate:'2026-07-08', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-04-08', updatedAt:'2026-04-08'},
+    {id:'p9', investmentRecordId:'r4', replayType:'6개월', scheduledDate:'2026-10-08', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-04-08', updatedAt:'2026-04-08'},
+    {id:'p10', investmentRecordId:'r5', replayType:'1개월', scheduledDate:'2026-06-14', completedDate:'2026-06-15', hypothesisStatus:'유지', currentReturn:5.4, profitLossReason:'실적', followedOriginalCriteria:'예', emotionalTrading:'아니오', nextAction:'보유', replayMemo:'배당 일정 확인. 장기 보유.', updatedJudgmentScore:88, createdAt:'2026-05-14', updatedAt:'2026-06-15'},
+    {id:'p11', investmentRecordId:'r5', replayType:'3개월', scheduledDate:'2026-08-14', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-05-14', updatedAt:'2026-05-14'},
+    {id:'p12', investmentRecordId:'r5', replayType:'6개월', scheduledDate:'2026-11-14', completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'', emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:'2026-05-14', updatedAt:'2026-05-14'}
+  ];
+  const W = [
+    {id:'w1', name:'TIGER 미국배당다우존스', ticker:'458730', market:'국내', theme:'배당 성장', reason:'월배당 현금흐름 확대', targetEntryPrice:11500, currentPrice:12100, buyCondition:'11,500원 이하 도달 시 분할매수 검토', risk:'금리 인하 지연', priority:'A', status:'관찰', memo:'', createdAt:'2026-05-01', updatedAt:'2026-06-30'},
+    {id:'w2', name:'현대차', ticker:'005380', market:'국내', theme:'자동차', reason:'하이브리드 판매 호조, 저평가 구간 판단', targetEntryPrice:175000, currentPrice:182000, buyCondition:'175,000원 이하 + 분기 실적 확인', risk:'관세 정책 변동', priority:'B', status:'매수 후보', memo:'실적 발표 7월 말', createdAt:'2026-06-09', updatedAt:'2026-06-30'},
+    {id:'w3', name:'팔란티어', ticker:'PLTR', market:'미국', theme:'AI 소프트웨어', reason:'정부·기업 AI 수요 성장', targetEntryPrice:120, currentPrice:158, buyCondition:'120달러 이하 + 밸류에이션 재점검', risk:'고평가 논란, 변동성 큼', priority:'C', status:'보류', memo:'현재 밸류에이션 부담', createdAt:'2026-04-20', updatedAt:'2026-06-30'}
+  ];
+  const PL = [
+    {id:'m1', yearMonth:'2026-07', monthlyBudget:1500000, targetEtfRatio:50, targetStockRatio:25, targetThemeRatio:5, targetCashRatio:20,
+     priority:'S&P500 ETF 비중 채우기, 테마주 추가매수 제외', plannedInvestmentDate:'2026-07-25', memo:'월급일 직후 정기 매수', createdAt:'2026-07-01', updatedAt:'2026-07-01'}
+  ];
+  const SN = [
+    {yearMonth:'2026-01', totalAsset:17400000},
+    {yearMonth:'2026-02', totalAsset:18300000},
+    {yearMonth:'2026-03', totalAsset:19200000},
+    {yearMonth:'2026-04', totalAsset:19000000},
+    {yearMonth:'2026-05', totalAsset:20300000},
+    {yearMonth:'2026-06', totalAsset:21200000}
+  ];
+  return {settings:{...DEFAULT_SETTINGS}, assets:A, records:R, scores:S, replays:RP, watchlist:W, plans:PL, snapshots:SN};
+}
+
+let DB;
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(DB_KEY);
+    if(raw){ DB = JSON.parse(raw); DB.settings = {...DEFAULT_SETTINGS, ...DB.settings}; return; }
+  }catch(e){ console.warn('DB load 실패', e); }
+  DB = seedData();
+  saveDB();
+}
+function saveDB(){
+  try{ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+  catch(e){ console.warn('DB 저장 실패', e); }
+}
+
+/* ═══════════════ 계산 유틸 ═══════════════ */
+function fx(a){ return a.currency === 'USD' ? (Number(a.exchangeRate) || DB.settings.exchangeRate || 1380) : 1; }
+function evalAmt(a){ return (Number(a.quantity)||0) * (Number(a.currentPrice)||0) * fx(a); }
+function buyAmt(a){ return (Number(a.quantity)||0) * (Number(a.averagePrice)||0) * fx(a); }
+function profitAmt(a){ return evalAmt(a) - buyAmt(a); }
+function returnPct(a){ const b = buyAmt(a); return b ? (profitAmt(a)/b*100) : 0; }
+function totalAsset(){ return DB.assets.reduce((s,a)=>s+evalAmt(a),0); }
+function assetWeight(a){ const t = totalAsset(); return t ? evalAmt(a)/t*100 : 0; }
+function ratioByType(){
+  const t = totalAsset(); const map = {'ETF':0,'개별주':0,'테마주':0,'배당주':0,'현금':0};
+  DB.assets.forEach(a=>{ map[a.assetType] = (map[a.assetType]||0) + evalAmt(a); });
+  const out = {};
+  Object.keys(map).forEach(k=>{ out[k] = t ? map[k]/t*100 : 0; });
+  return out;
+}
+function ratioByAccount(){
+  const t = totalAsset(); const map = {};
+  DB.assets.forEach(a=>{ map[a.accountType] = (map[a.accountType]||0) + evalAmt(a); });
+  Object.keys(map).forEach(k=>{ map[k] = t ? map[k]/t*100 : 0; });
+  return map;
+}
+function monthInvested(yearMonth){
+  return DB.records.filter(r => ['매수','추가매수','배당 재투자'].includes(r.actionType) && ym(r.date) === yearMonth)
+    .reduce((s,r)=>s+(Number(r.amount)||0),0);
+}
+function scoreOf(recordId){ return DB.scores.filter(s=>s.investmentRecordId===recordId).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''))[0] || null; }
+function replaysOf(recordId){ return DB.replays.filter(p=>p.investmentRecordId===recordId); }
+function interpretScore(total){
+  if(total >= 80) return {label:'매수 판단 양호', cls:'badge-green'};
+  if(total >= 60) return {label:'소액 또는 분할매수 권장', cls:'badge-blue'};
+  if(total >= 40) return {label:'추가 검토 필요', cls:'badge-orange'};
+  return {label:'감정 매매 가능성 높음', cls:'badge-red'};
+}
+function replayVerdict(ret, score){
+  if(ret === null || ret === undefined || score === null || score === undefined) return {text:'복기 데이터 없음', cls:'badge-gray'};
+  if(ret >= 0 && score >= 70) return {text:'좋은 판단 — 수익과 판단 근거가 함께 유지됨', cls:'badge-green'};
+  if(ret >= 0 && score < 70) return {text:'운이 좋았을 가능성 — 수익은 났지만 판단 근거 보완 필요', cls:'badge-orange'};
+  if(ret < 0 && score >= 70) return {text:'판단은 유효 — 손실 원인 점검 후 기준 유지 여부 확인', cls:'badge-blue'};
+  return {text:'판단 보완 필요 — 손실과 판단 근거 부족이 겹침', cls:'badge-red'};
+}
+
+/* ═══════════════ 포맷 ═══════════════ */
+function fmt(n){ n = Number(n)||0; return Math.round(n).toLocaleString('ko-KR') + '원'; }
+function fmtNum(n){ n = Number(n)||0; return (Math.round(n*100)/100).toLocaleString('ko-KR'); }
+function fmtPct(n, sign){ n = Number(n)||0; const v = (Math.round(n*10)/10).toFixed(1); return (sign && n>0?'+':'') + v + '%'; }
+function pnlCls(n){ return n>0?'up':(n<0?'down':'muted'); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ═══════════════ 모달 ═══════════════ */
+function openModal(html){
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalBack').classList.remove('hidden');
+}
+function closeModal(){
+  document.getElementById('modalBack').classList.add('hidden');
+  document.getElementById('modalBox').innerHTML = '';
+}
+document.addEventListener('click', e=>{
+  if(e.target.id === 'modalBack') closeModal();
+});
+function formValues(formId){
+  const f = document.getElementById(formId);
+  const out = {};
+  [...f.querySelectorAll('input,select,textarea')].forEach(el=>{
+    if(!el.name) return;
+    out[el.name] = el.type === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value;
+  });
+  return out;
+}
+
+/* ═══════════════ 차트 ═══════════════ */
+const _charts = {};
+function drawChart(canvasId, config){
+  if(typeof Chart === 'undefined'){
+    const c = document.getElementById(canvasId);
+    if(c && c.parentElement) c.parentElement.innerHTML = '<div class="empty">차트 라이브러리를 불러올 수 없습니다 (오프라인)</div>';
+    return;
+  }
+  const el = document.getElementById(canvasId);
+  if(!el) return;
+  if(_charts[canvasId]) _charts[canvasId].destroy();
+  _charts[canvasId] = new Chart(el, config);
+}
+const CHART_COLORS = ['#2563eb','#60a5fa','#16a34a','#f59e0b','#94a3b8','#dc2626','#8b5cf6'];
+
+/* ═══════════════ 라우터 ═══════════════ */
+const PAGES = {};
+function route(){
+  const hash = (location.hash || '#home').slice(1).split('/');
+  const page = PAGES[hash[0]] ? hash[0] : 'home';
+  document.querySelectorAll('[data-page]').forEach(el=>{
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  Object.keys(_charts).forEach(k=>{ _charts[k].destroy(); delete _charts[k]; });
+  document.getElementById('app').innerHTML = PAGES[page].render(hash[1]);
+  if(PAGES[page].after) PAGES[page].after(hash[1]);
+  window.scrollTo(0,0);
+}
+function pageHead(title, desc, actionsHtml){
+  return `<div class="page-head"><div><h1>${title}</h1><p>${desc||''}</p></div><div class="actions">${actionsHtml||''}</div></div>`;
+}
+/* ═══════════════ 홈 대시보드 ═══════════════ */
+PAGES.home = {
+  render(){
+    const s = DB.settings;
+    const total = totalAsset();
+    const goalPct = s.yearlyTargetAsset ? total/s.yearlyTargetAsset*100 : 0;
+    const thisYm = ym();
+    const invested = monthInvested(thisYm);
+    const investPct = s.monthlyInvestmentTarget ? invested/s.monthlyInvestmentTarget*100 : 0;
+    const prevSnap = DB.snapshots.length ? DB.snapshots[DB.snapshots.length-1].totalAsset : total;
+    const monthDelta = prevSnap ? (total-prevSnap)/prevSnap*100 : 0;
+    const holdings = DB.assets.filter(a=>a.assetType!=='현금').sort((x,y)=>evalAmt(y)-evalAmt(x)).slice(0,5);
+    const recent = [...DB.records].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+    const today = todayStr();
+    const pending = DB.replays.filter(p=>!p.completedDate).sort((a,b)=>a.scheduledDate.localeCompare(b.scheduledDate)).slice(0,4);
+    const doneCnt = DB.replays.filter(p=>p.completedDate).length;
+    const dueCnt = DB.replays.filter(p=>!p.completedDate && p.scheduledDate<=today).length;
+    const plan = DB.plans.find(p=>p.yearMonth===thisYm);
+    const watch = DB.watchlist.filter(w=>w.status!=='제외').sort((a,b)=>a.priority.localeCompare(b.priority)).slice(0,4);
+
+    return pageHead('홈', today + ' 기준 · 내 투자 현황 한눈에 보기') + `
+    <div class="grid cols4" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="label">총자산</div>
+        <div class="value">${fmt(total)}</div>
+        <div class="sub"><span class="delta ${pnlCls(monthDelta)}">${fmtPct(monthDelta,true)}</span> 지난달 스냅샷 대비</div></div>
+      <div class="card stat-card"><div class="label">올해 목표 달성률</div>
+        <div class="value">${fmtPct(goalPct)}</div>
+        <div class="progress" style="margin:8px 0 6px"><div style="width:${Math.min(goalPct,100)}%"></div></div>
+        <div class="sub">목표 ${fmt(DB.settings.yearlyTargetAsset)}</div></div>
+      <div class="card stat-card"><div class="label">이번 달 투자금</div>
+        <div class="value">${fmt(invested)}</div>
+        <div class="progress" style="margin:8px 0 6px"><div style="width:${Math.min(investPct,100)}%"></div></div>
+        <div class="sub">월 목표 ${fmt(s.monthlyInvestmentTarget)} 중 ${fmtPct(investPct)}</div></div>
+      <div class="card stat-card"><div class="label">목표 월 배당금</div>
+        <div class="value">${fmt(s.monthlyDividendTarget)}</div>
+        <div class="sub">설정 기준 · 배당 재투자 기록으로 추적</div></div>
+    </div>
+
+    <div class="grid cols2" style="margin-bottom:16px">
+      <div class="card"><h3>자산 추이 <a href="#stats">통계 보기</a></h3><div class="chart-box"><canvas id="homeTrend"></canvas></div></div>
+      <div class="card"><h3>포트폴리오 비중 <a href="#portfolio">포트폴리오</a></h3><div class="chart-box"><canvas id="homePie"></canvas></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px"><h3>🔁 투자 판단 리플레이 <a href="#replay">전체 보기</a></h3>
+      ${dueCnt>0?`<div class="notice">복기 예정일이 지난 리플레이가 ${dueCnt}건 있습니다. 매수 당시 가설이 유지되는지 점검해 보세요.</div>`:''}
+      <div class="grid cols2">
+        ${pending.length? pending.map(p=>{
+          const r = DB.records.find(x=>x.id===p.investmentRecordId)||{};
+          const due = p.scheduledDate<=today;
+          return `<div class="list-item" style="border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+            <div><b>${esc(r.name)}</b> <span class="badge badge-gray">${p.replayType}</span><br>
+            <span class="muted" style="font-size:12px">예정일 ${p.scheduledDate}</span></div>
+            <span class="badge ${due?'badge-orange':'badge-blue'}">${due?'복기 필요':'대기'}</span></div>`;
+        }).join('') : '<div class="empty">예정된 리플레이가 없습니다</div>'}
+      </div>
+      <div class="divider"></div>
+      <div class="muted" style="font-size:12px">완료 ${doneCnt}건 / 전체 ${DB.replays.length}건 · 완료율 ${fmtPct(DB.replays.length?doneCnt/DB.replays.length*100:0)}</div>
+    </div>
+
+    <div class="grid cols2" style="margin-bottom:16px">
+      <div class="card"><h3>보유 종목 요약 <a href="#portfolio">전체</a></h3>
+        ${holdings.length? holdings.map(a=>`<div class="list-item">
+          <div><b>${esc(a.name)}</b> <span class="muted">${esc(a.ticker)}</span><br><span class="muted" style="font-size:12px">${fmtPct(assetWeight(a))} · ${esc(a.accountType)}</span></div>
+          <div style="text-align:right">${fmt(evalAmt(a))}<br><span class="${pnlCls(returnPct(a))}" style="font-size:12px;font-weight:700">${fmtPct(returnPct(a),true)}</span></div>
+        </div>`).join('') : '<div class="empty">보유 종목을 등록해 보세요</div>'}
+      </div>
+      <div class="card"><h3>최근 투자 기록 <a href="#records">전체</a></h3>
+        ${recent.length? recent.map(r=>{
+          const sc = scoreOf(r.id);
+          return `<div class="list-item">
+          <div><b>${esc(r.name)}</b> <span class="badge ${r.actionType==='매도'?'badge-red':(r.actionType==='관망'?'badge-gray':'badge-blue')}">${r.actionType}</span><br>
+          <span class="muted" style="font-size:12px">${r.date} · 감정: ${esc(r.emotion)}</span></div>
+          <div style="text-align:right">${r.amount?fmt(r.amount):'-'}<br>${sc?`<span class="muted" style="font-size:12px">판단 ${sc.totalScore}점</span>`:'<span class="muted" style="font-size:12px">점수 없음</span>'}</div>
+        </div>`;}).join('') : '<div class="empty">투자 기록이 없습니다</div>'}
+      </div>
+    </div>
+
+    <div class="grid cols2">
+      <div class="card"><h3>이번 달 투자 계획 <a href="#plan">월간계획</a></h3>
+        ${plan? `<div class="list-item"><span class="muted">월 투자 가능 금액</span><b>${fmt(plan.monthlyBudget)}</b></div>
+          <div class="list-item"><span class="muted">집행액 / 완료율</span><b>${fmt(invested)} · ${fmtPct(plan.monthlyBudget?invested/plan.monthlyBudget*100:0)}</b></div>
+          <div class="list-item"><span class="muted">이번 달 우선순위</span><span style="text-align:right">${esc(plan.priority)}</span></div>
+          <div class="list-item"><span class="muted">투자 예정일</span><b>${plan.plannedInvestmentDate||'-'}</b></div>`
+        : `<div class="empty">이번 달 계획이 없습니다. <a href="#plan" style="color:var(--blue)">월간계획 세우기</a></div>`}
+      </div>
+      <div class="card"><h3>관심종목 <a href="#watchlist">전체</a></h3>
+        ${watch.length? watch.map(w=>{
+          const hit = w.targetEntryPrice && w.currentPrice && Number(w.currentPrice) <= Number(w.targetEntryPrice);
+          return `<div class="list-item">
+          <div><b>${esc(w.name)}</b> <span class="badge badge-gray">${w.priority}</span><br><span class="muted" style="font-size:12px">목표 ${fmtNum(w.targetEntryPrice)} / 현재 ${fmtNum(w.currentPrice)}</span></div>
+          <span class="badge ${hit?'badge-green':'badge-gray'}">${hit?'목표가 도달':'관찰 중'}</span></div>`;
+        }).join('') : '<div class="empty">관심종목이 없습니다</div>'}
+      </div>
+    </div>`;
+  },
+  after(){
+    const labels = DB.snapshots.map(s=>s.yearMonth);
+    const data = DB.snapshots.map(s=>s.totalAsset);
+    labels.push(ym()); data.push(totalAsset());
+    drawChart('homeTrend', {type:'line',
+      data:{labels, datasets:[{label:'총자산', data, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.08)', fill:true, tension:.35, pointRadius:3}]},
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{y:{ticks:{callback:v=>(v/10000).toLocaleString()+'만'}}}}});
+    const rt = ratioByType();
+    const keys = Object.keys(rt).filter(k=>rt[k]>0);
+    drawChart('homePie', {type:'doughnut',
+      data:{labels:keys, datasets:[{data:keys.map(k=>Math.round(rt[k]*10)/10), backgroundColor:CHART_COLORS}]},
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}}, cutout:'62%'}});
+  }
+};
+
+/* ═══════════════ 포트폴리오 ═══════════════ */
+const PF_STATE = {account:'전체', type:'전체', sort:'evalDesc'};
+PAGES.portfolio = {
+  render(){
+    let list = DB.assets.filter(a =>
+      (PF_STATE.account==='전체'||a.accountType===PF_STATE.account) &&
+      (PF_STATE.type==='전체'||a.assetType===PF_STATE.type));
+    if(PF_STATE.sort==='retDesc') list.sort((a,b)=>returnPct(b)-returnPct(a));
+    else if(PF_STATE.sort==='retAsc') list.sort((a,b)=>returnPct(a)-returnPct(b));
+    else list.sort((a,b)=>evalAmt(b)-evalAmt(a));
+    const total = totalAsset();
+    const totalBuy = DB.assets.reduce((s,a)=>s+buyAmt(a),0);
+    const totalPnl = total - totalBuy;
+
+    return pageHead('포트폴리오','보유 종목과 평가손익을 관리합니다. 현재가는 직접 입력해 주세요.',
+      `<button class="btn btn-primary" onclick="openAssetForm()">＋ 종목 추가</button>`) + `
+    <div class="grid cols3" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="label">총 평가금액</div><div class="value">${fmt(total)}</div></div>
+      <div class="card stat-card"><div class="label">총 매수금액</div><div class="value">${fmt(totalBuy)}</div></div>
+      <div class="card stat-card"><div class="label">총 평가손익</div>
+        <div class="value ${pnlCls(totalPnl)}">${fmt(totalPnl)}</div>
+        <div class="sub ${pnlCls(totalPnl)}" style="font-weight:700">${fmtPct(totalBuy?totalPnl/totalBuy*100:0,true)}</div></div>
+    </div>
+    <div class="grid cols2" style="margin-bottom:16px">
+      <div class="card"><h3>자산군별 비중</h3><div class="chart-box"><canvas id="pfTypePie"></canvas></div></div>
+      <div class="card"><h3>계좌별 비중</h3><div class="chart-box"><canvas id="pfAcctPie"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <select onchange="PF_STATE.account=this.value;route()">
+          ${['전체','ISA','연금저축','일반계좌','해외계좌','현금'].map(v=>`<option ${PF_STATE.account===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+        <select onchange="PF_STATE.type=this.value;route()">
+          ${['전체','ETF','개별주','테마주','배당주','현금'].map(v=>`<option ${PF_STATE.type===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+        <select onchange="PF_STATE.sort=this.value;route()">
+          <option value="evalDesc" ${PF_STATE.sort==='evalDesc'?'selected':''}>평가금액 순</option>
+          <option value="retDesc" ${PF_STATE.sort==='retDesc'?'selected':''}>수익률 높은 순</option>
+          <option value="retAsc" ${PF_STATE.sort==='retAsc'?'selected':''}>수익률 낮은 순</option>
+        </select>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>종목</th><th>계좌</th><th>유형</th><th class="num">수량</th><th class="num">평균단가</th><th class="num">현재가</th>
+        <th class="num">매수금액</th><th class="num">평가금액</th><th class="num">평가손익</th><th class="num">수익률</th><th class="num">비중</th><th></th></tr></thead>
+        <tbody>${list.length? list.map(a=>{
+          const p = profitAmt(a), r = returnPct(a), w = assetWeight(a);
+          const overweight = a.assetType!=='현금' && w > DB.settings.maxSingleStockRatio;
+          return `<tr>
+            <td><b>${esc(a.name)}</b><br><span class="muted" style="font-size:12px">${esc(a.ticker)} · ${esc(a.market)}${a.currency==='USD'?' · USD':''}</span></td>
+            <td>${esc(a.accountType)}</td><td><span class="badge badge-gray">${esc(a.assetType)}</span></td>
+            <td class="num">${fmtNum(a.quantity)}</td>
+            <td class="num">${fmtNum(a.averagePrice)}${a.currency==='USD'?'$':''}</td>
+            <td class="num">${fmtNum(a.currentPrice)}${a.currency==='USD'?'$':''}</td>
+            <td class="num">${fmt(buyAmt(a))}</td><td class="num"><b>${fmt(evalAmt(a))}</b></td>
+            <td class="num ${pnlCls(p)}">${fmt(p)}</td>
+            <td class="num ${pnlCls(r)}"><b>${fmtPct(r,true)}</b></td>
+            <td class="num">${fmtPct(w)}${overweight?' <span class="warn" title="종목별 최대 비중 초과">⚠</span>':''}</td>
+            <td><button class="btn btn-sm" onclick="openAssetForm('${a.id}')">수정</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteAsset('${a.id}')">삭제</button></td></tr>`;
+        }).join('') : '<tr><td colspan="12"><div class="empty">조건에 맞는 종목이 없습니다</div></td></tr>'}</tbody>
+      </table></div>
+      ${DB.assets.some(a=>a.assetType!=='현금' && assetWeight(a)>DB.settings.maxSingleStockRatio)?
+        `<div class="notice" style="margin-top:14px;background:var(--orange-bg);border-color:#fed7aa;color:var(--orange)">⚠ 종목별 최대 비중(${DB.settings.maxSingleStockRatio}%)을 초과한 종목이 있습니다. 비중 조정 검토가 필요합니다.</div>`:''}
+    </div>`;
+  },
+  after(){
+    const rt = ratioByType(); const tk = Object.keys(rt).filter(k=>rt[k]>0);
+    drawChart('pfTypePie',{type:'doughnut',data:{labels:tk,datasets:[{data:tk.map(k=>Math.round(rt[k]*10)/10),backgroundColor:CHART_COLORS}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}},cutout:'62%'}});
+    const ra = ratioByAccount(); const ak = Object.keys(ra);
+    drawChart('pfAcctPie',{type:'doughnut',data:{labels:ak,datasets:[{data:ak.map(k=>Math.round(ra[k]*10)/10),backgroundColor:CHART_COLORS}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}},cutout:'62%'}});
+  }
+};
+
+function openAssetForm(id){
+  const a = id ? DB.assets.find(x=>x.id===id) : {accountType:'일반계좌',assetType:'ETF',market:'국내',currency:'KRW',name:'',ticker:'',quantity:'',averagePrice:'',currentPrice:'',exchangeRate:1,memo:''};
+  openModal(`<h2>${id?'종목 수정':'종목 추가'}</h2>
+  <form id="assetForm" onsubmit="return false"><div class="form-grid">
+    <div class="field"><label>계좌 구분</label><select name="accountType">${['ISA','연금저축','일반계좌','해외계좌','현금'].map(v=>`<option ${a.accountType===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>자산 유형</label><select name="assetType">${['ETF','개별주','테마주','배당주','현금'].map(v=>`<option ${a.assetType===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>종목명</label><input name="name" required value="${esc(a.name)}"></div>
+    <div class="field"><label>티커</label><input name="ticker" value="${esc(a.ticker)}"></div>
+    <div class="field"><label>시장 구분</label><select name="market">${['국내','미국','기타'].map(v=>`<option ${a.market===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>통화</label><select name="currency">${['KRW','USD'].map(v=>`<option ${a.currency===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>보유 수량</label><input name="quantity" type="number" step="any" value="${a.quantity}"></div>
+    <div class="field"><label>평균단가</label><input name="averagePrice" type="number" step="any" value="${a.averagePrice}"></div>
+    <div class="field"><label>현재가</label><input name="currentPrice" type="number" step="any" value="${a.currentPrice}"></div>
+    <div class="field"><label>환율 (USD일 때 적용)</label><input name="exchangeRate" type="number" step="any" value="${a.exchangeRate||DB.settings.exchangeRate}"></div>
+    <div class="field full"><label>메모</label><textarea name="memo">${esc(a.memo)}</textarea></div>
+  </div>
+  <div class="muted" style="font-size:12px;margin-top:10px">평가금액·평가손익·수익률·비중은 자동 계산됩니다.</div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">취소</button>
+  <button class="btn btn-primary" onclick="saveAsset('${id||''}')">저장</button></div></form>`);
+}
+function saveAsset(id){
+  const v = formValues('assetForm');
+  if(!v.name){ alert('종목명을 입력해 주세요.'); return; }
+  if(id){
+    const a = DB.assets.find(x=>x.id===id);
+    Object.assign(a, v, {updatedAt:todayStr()});
+  }else{
+    DB.assets.push({id:uid(), ...v, createdAt:todayStr(), updatedAt:todayStr()});
+  }
+  saveDB(); closeModal(); route();
+}
+function deleteAsset(id){
+  if(!confirm('이 종목을 삭제할까요? 연결된 투자기록은 유지됩니다.')) return;
+  DB.assets = DB.assets.filter(a=>a.id!==id);
+  saveDB(); route();
+}
+
+/* ═══════════════ 투자기록 ═══════════════ */
+const REC_STATE = {type:'전체'};
+PAGES.records = {
+  render(){
+    const list = [...DB.records].filter(r=>REC_STATE.type==='전체'||r.actionType===REC_STATE.type)
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    return pageHead('투자기록','"내가 왜 샀는지"를 남기는 곳입니다. 기록은 판단점수·리플레이와 연결됩니다.',
+      `<button class="btn btn-primary" onclick="openRecordForm()">＋ 기록 추가</button>`) + `
+    <div class="card">
+      <div class="filters"><select onchange="REC_STATE.type=this.value;route()">
+        ${['전체','매수','매도','추가매수','관망','리밸런싱','배당 재투자'].map(v=>`<option ${REC_STATE.type===v?'selected':''}>${v}</option>`).join('')}
+      </select></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>날짜</th><th>종목</th><th>행동</th><th class="num">금액</th><th>감정</th><th>판단점수</th><th>리플레이</th><th></th></tr></thead>
+        <tbody>${list.length? list.map(r=>{
+          const sc = scoreOf(r.id);
+          const rps = replaysOf(r.id);
+          const done = rps.filter(p=>p.completedDate).length;
+          return `<tr>
+            <td>${r.date}</td>
+            <td><b>${esc(r.name)}</b><br><span class="muted" style="font-size:12px">${esc(r.ticker)}</span></td>
+            <td><span class="badge ${r.actionType==='매도'?'badge-red':(['관망','리밸런싱'].includes(r.actionType)?'badge-gray':'badge-blue')}">${r.actionType}</span></td>
+            <td class="num">${r.amount?fmt(r.amount):'-'}</td>
+            <td>${esc(r.emotion)||'-'}</td>
+            <td>${sc?`<b>${sc.totalScore}점</b> <span class="badge ${interpretScore(sc.totalScore).cls}">${interpretScore(sc.totalScore).label}</span>`
+              :`<a href="#score/${r.id}" class="btn btn-sm" style="text-decoration:none">점수 매기기</a>`}</td>
+            <td>${rps.length?`<span class="replay-step">${rps.map(p=>`<span class="dot ${p.completedDate?'done':(p.scheduledDate<=todayStr()?'due':'')}" title="${p.replayType}"></span>`).join('')} ${done}/${rps.length}</span>`:'-'}</td>
+            <td><button class="btn btn-sm" onclick="openRecordDetail('${r.id}')">상세</button>
+                <button class="btn btn-sm" onclick="openRecordForm('${r.id}')">수정</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${r.id}')">삭제</button></td></tr>`;
+        }).join('') : '<tr><td colspan="8"><div class="empty">기록이 없습니다. 첫 투자 기록을 남겨 보세요.</div></td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+  }
+};
+
+function openRecordForm(id){
+  const r = id ? DB.records.find(x=>x.id===id) : {name:'',ticker:'',actionType:'매수',date:todayStr(),amount:'',quantity:'',price:'',
+    reason:'',hypothesis:'',risk:'',emotion:'중립',investmentPeriod:'',targetReturn:'',reviewCriteria:'',sellCriteria:'',memo:'',assetId:''};
+  openModal(`<h2>${id?'투자기록 수정':'투자기록 추가'}</h2>
+  <form id="recForm" onsubmit="return false"><div class="form-grid">
+    <div class="field"><label>종목명</label><input name="name" required value="${esc(r.name)}"></div>
+    <div class="field"><label>티커</label><input name="ticker" value="${esc(r.ticker)}"></div>
+    <div class="field"><label>행동 유형</label><select name="actionType">${['매수','매도','추가매수','관망','리밸런싱','배당 재투자'].map(v=>`<option ${r.actionType===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>날짜</label><input name="date" type="date" value="${r.date}"></div>
+    <div class="field"><label>금액 (원)</label><input name="amount" type="number" step="any" value="${r.amount}"></div>
+    <div class="field"><label>수량</label><input name="quantity" type="number" step="any" value="${r.quantity}"></div>
+    <div class="field"><label>가격</label><input name="price" type="number" step="any" value="${r.price}"></div>
+    <div class="field"><label>연결 보유종목</label><select name="assetId"><option value="">연결 안 함</option>
+      ${DB.assets.map(a=>`<option value="${a.id}" ${r.assetId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
+    <div class="field full"><label>매수/매도 이유</label><textarea name="reason">${esc(r.reason)}</textarea></div>
+    <div class="field full"><label>핵심 투자 가설</label><textarea name="hypothesis">${esc(r.hypothesis)}</textarea></div>
+    <div class="field full"><label>리스크</label><textarea name="risk">${esc(r.risk)}</textarea></div>
+    <div class="field"><label>감정 상태</label><select name="emotion">${['확신','불안','FOMO','공포','기계적 매수','중립'].map(v=>`<option ${r.emotion===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>투자 기간</label><input name="investmentPeriod" placeholder="예: 1~2년" value="${esc(r.investmentPeriod)}"></div>
+    <div class="field"><label>목표 수익률</label><input name="targetReturn" placeholder="예: 20%" value="${esc(r.targetReturn)}"></div>
+    <div class="field"><label>재검토 기준</label><input name="reviewCriteria" placeholder="예: 분기 실적 확인" value="${esc(r.reviewCriteria)}"></div>
+    <div class="field full"><label>매도 기준</label><input name="sellCriteria" value="${esc(r.sellCriteria)}"></div>
+    <div class="field full"><label>메모</label><textarea name="memo">${esc(r.memo)}</textarea></div>
+  </div>
+  ${!id?'<div class="muted" style="font-size:12px;margin-top:10px">매수/추가매수/배당 재투자 기록은 저장 시 1·3·6개월 리플레이 일정이 자동 생성됩니다.</div>':''}
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">취소</button>
+  <button class="btn btn-primary" onclick="saveRecord('${id||''}')">저장</button></div></form>`);
+}
+function saveRecord(id){
+  const v = formValues('recForm');
+  if(!v.name){ alert('종목명을 입력해 주세요.'); return; }
+  if(id){
+    const r = DB.records.find(x=>x.id===id);
+    Object.assign(r, v, {updatedAt:todayStr()});
+  }else{
+    const nid = uid();
+    DB.records.push({id:nid, ...v, createdAt:todayStr(), updatedAt:todayStr()});
+    if(['매수','추가매수','배당 재투자'].includes(v.actionType)){
+      DB.settings.replayPeriods.forEach(m=>{
+        DB.replays.push({id:uid(), investmentRecordId:nid, replayType:m+'개월', scheduledDate:addMonths(v.date||todayStr(),m),
+          completedDate:null, hypothesisStatus:'', currentReturn:null, profitLossReason:'', followedOriginalCriteria:'',
+          emotionalTrading:'', nextAction:'', replayMemo:'', updatedJudgmentScore:null, createdAt:todayStr(), updatedAt:todayStr()});
+      });
+    }
+  }
+  saveDB(); closeModal(); route();
+}
+function deleteRecord(id){
+  if(!confirm('이 기록을 삭제할까요? 연결된 판단점수·리플레이도 함께 삭제됩니다.')) return;
+  DB.records = DB.records.filter(r=>r.id!==id);
+  DB.scores = DB.scores.filter(s=>s.investmentRecordId!==id);
+  DB.replays = DB.replays.filter(p=>p.investmentRecordId!==id);
+  saveDB(); route();
+}
+function openRecordDetail(id){
+  const r = DB.records.find(x=>x.id===id); if(!r) return;
+  const sc = scoreOf(id);
+  const row = (k,v)=>`<div class="list-item"><span class="muted" style="flex-shrink:0">${k}</span><span style="text-align:right">${v||'-'}</span></div>`;
+  openModal(`<h2>${esc(r.name)} <span class="badge badge-blue">${r.actionType}</span></h2>
+    ${row('날짜', r.date)}${row('금액', r.amount?fmt(r.amount):'-')}${row('수량 / 가격', (r.quantity||'-')+' / '+(r.price?fmtNum(r.price):'-'))}
+    ${row('이유', esc(r.reason))}${row('투자 가설', esc(r.hypothesis))}${row('리스크', esc(r.risk))}
+    ${row('감정 상태', esc(r.emotion))}${row('투자 기간', esc(r.investmentPeriod))}${row('목표 수익률', esc(r.targetReturn))}
+    ${row('재검토 기준', esc(r.reviewCriteria))}${row('매도 기준', esc(r.sellCriteria))}${row('메모', esc(r.memo))}
+    ${sc?row('판단점수', `<b>${sc.totalScore}점</b> · ${interpretScore(sc.totalScore).label}`):''}
+    <div class="modal-actions">
+      ${!sc?`<a class="btn" style="text-decoration:none" href="#score/${r.id}" onclick="closeModal()">판단점수 매기기</a>`:''}
+      <a class="btn" style="text-decoration:none" href="#replay" onclick="closeModal()">리플레이 보기</a>
+      <button class="btn btn-primary" onclick="closeModal()">닫기</button></div>`);
+}
+/* ═══════════════ 판단점수 ═══════════════ */
+const SCORE_ITEMS = [
+  {key:'reasonScore', label:'1. 매수 이유가 명확한가', max:20, opts:[[20,'구체적 근거와 논리가 있다'],[10,'대략적인 이유는 있다'],[0,'감이나 뉴스만 보고 결정했다']]},
+  {key:'periodScore', label:'2. 투자 기간이 정해져 있는가', max:10, opts:[[10,'기간을 명확히 정했다'],[5,'대략적으로만 생각했다'],[0,'정하지 않았다']]},
+  {key:'riskScore', label:'3. 리스크를 인식했는가', max:15, opts:[[15,'구체적 리스크를 적었다'],[8,'막연히 인식하고 있다'],[0,'리스크를 생각하지 않았다']]},
+  {key:'reviewCriteriaScore', label:'4. 재검토 기준이 있는가', max:15, opts:[[15,'언제 다시 점검할지 정했다'],[8,'느슨한 기준만 있다'],[0,'없다']]},
+  {key:'portfolioRatioScore', label:'5. 포트폴리오 비중이 적절한가', max:15, opts:[[15,'목표 비중·한도 내에 있다'],[8,'다소 높지만 관리 가능'],[0,'한도를 초과하거나 확인 안 함']]},
+  {key:'emotionScore', label:'6. 감정 매매가 아닌가', max:15, opts:[[15,'계획에 따른 매매다'],[8,'감정이 일부 개입됐다'],[0,'FOMO/공포 등 감정이 주도했다']]},
+  {key:'targetReturnScore', label:'7. 목표 수익률이 현실적인가', max:10, opts:[[10,'근거 있는 현실적 목표'],[5,'다소 낙관적'],[0,'목표가 없거나 비현실적']]}
+];
+PAGES.score = {
+  render(recordId){
+    const candidates = DB.records.filter(r=>['매수','추가매수','매도','리밸런싱','배당 재투자'].includes(r.actionType));
+    const scored = DB.scores.map(s=>{
+      const r = DB.records.find(x=>x.id===s.investmentRecordId)||{};
+      return {s, r};
+    }).sort((a,b)=>(b.s.createdAt||'').localeCompare(a.s.createdAt||''));
+    const sel = recordId || '';
+    return pageHead('판단점수','종목 추천이 아니라, 스스로 충분히 생각하고 투자했는지 점검하는 도구입니다.') + `
+    <div class="grid cols2">
+      <div class="card">
+        <h3>판단 점수 매기기</h3>
+        <div class="field" style="margin-bottom:14px"><label>평가할 투자기록 선택</label>
+          <select id="scoreTarget" onchange="location.hash='score/'+this.value">
+            <option value="">기록 선택</option>
+            ${candidates.map(r=>`<option value="${r.id}" ${sel===r.id?'selected':''}>${r.date} · ${esc(r.name)} · ${r.actionType}${scoreOf(r.id)?' (평가됨)':''}</option>`).join('')}
+          </select></div>
+        ${sel? renderChecklist(sel) : '<div class="empty">투자기록을 선택하면 체크리스트가 표시됩니다.<br>기록이 없다면 먼저 투자기록을 남겨 주세요.</div>'}
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px"><h3>점수 해석 기준</h3>
+          <div class="list-item"><span class="badge badge-green">80점 이상</span><span>매수 판단 양호</span></div>
+          <div class="list-item"><span class="badge badge-blue">60~79점</span><span>소액 또는 분할매수 권장</span></div>
+          <div class="list-item"><span class="badge badge-orange">40~59점</span><span>추가 검토 필요</span></div>
+          <div class="list-item"><span class="badge badge-red">40점 미만</span><span>감정 매매 가능성 높음</span></div>
+        </div>
+        <div class="card"><h3>최근 평가 내역</h3>
+          ${scored.length? scored.map(({s,r})=>`<div class="list-item">
+            <div><b>${esc(r.name||'삭제된 기록')}</b><br><span class="muted" style="font-size:12px">${s.createdAt}</span></div>
+            <div style="text-align:right"><b>${s.totalScore}점</b><br><span class="badge ${interpretScore(s.totalScore).cls}">${interpretScore(s.totalScore).label}</span></div>
+          </div>`).join('') : '<div class="empty">아직 평가 내역이 없습니다</div>'}
+        </div>
+      </div>
+    </div>`;
+  },
+  after(recordId){ if(recordId) updateScoreTotal(); }
+};
+function renderChecklist(recordId){
+  const r = DB.records.find(x=>x.id===recordId);
+  if(!r) return '<div class="empty">기록을 찾을 수 없습니다</div>';
+  const prev = scoreOf(recordId);
+  return `<div class="notice">「${esc(r.name)}」 ${r.date} ${r.actionType} 기록 평가${prev?` · 기존 점수 ${prev.totalScore}점 (저장 시 새 평가로 추가)`:''}</div>
+  <form id="scoreForm" onsubmit="return false">
+  ${SCORE_ITEMS.map(it=>`<div class="field" style="margin-bottom:12px">
+    <label>${it.label} <span class="muted">(${it.max}점)</span></label>
+    <select name="${it.key}" onchange="updateScoreTotal()">
+      ${it.opts.map(([v,txt],i)=>`<option value="${v}" ${prev&&prev[it.key]===v?'selected':(!prev&&i===1?'selected':'')}>${v}점 — ${txt}</option>`).join('')}
+    </select></div>`).join('')}
+  </form>
+  <div class="divider"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div><span class="muted" style="font-size:12px">총점</span><br><span class="score-badge" id="scoreTotal">0점</span></div>
+    <span id="scoreVerdict"></span>
+  </div>
+  <div style="margin-top:16px;text-align:right">
+    <button class="btn btn-primary" onclick="saveScore('${recordId}')">투자기록에 점수 저장</button>
+  </div>`;
+}
+function updateScoreTotal(){
+  const f = document.getElementById('scoreForm'); if(!f) return;
+  let total = 0;
+  [...f.querySelectorAll('select')].forEach(s=>total+=Number(s.value)||0);
+  const v = interpretScore(total);
+  document.getElementById('scoreTotal').textContent = total + '점';
+  document.getElementById('scoreVerdict').innerHTML = `<span class="badge ${v.cls}" style="font-size:13px;padding:6px 14px">${v.label}</span>`;
+}
+function saveScore(recordId){
+  const v = formValues('scoreForm');
+  const total = SCORE_ITEMS.reduce((s,it)=>s+(Number(v[it.key])||0),0);
+  DB.scores.push({id:uid(), investmentRecordId:recordId, ...v, totalScore:total,
+    interpretation:interpretScore(total).label, createdAt:todayStr()});
+  saveDB();
+  alert('판단점수 '+total+'점이 저장되었습니다.');
+  location.hash = 'records'; route();
+}
+
+/* ═══════════════ 판단 리플레이 ═══════════════ */
+PAGES.replay = {
+  render(){
+    const today = todayStr();
+    const targets = DB.records.filter(r=>replaysOf(r.id).length>0)
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    const all = DB.replays.length, done = DB.replays.filter(p=>p.completedDate).length;
+    const due = DB.replays.filter(p=>!p.completedDate && p.scheduledDate<=today);
+    return pageHead('판단 리플레이','수익률과 판단력을 분리해서 평가합니다. 매수 당시 가설이 지금도 유효한지 복기해 보세요.') + `
+    <div class="grid cols3" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="label">복기 완료율</div><div class="value">${fmtPct(all?done/all*100:0)}</div>
+        <div class="progress" style="margin:8px 0 6px"><div style="width:${all?done/all*100:0}%"></div></div>
+        <div class="sub">${done} / ${all}건 완료</div></div>
+      <div class="card stat-card"><div class="label">복기 필요</div><div class="value ${due.length?'warn':''}">${due.length}건</div>
+        <div class="sub">예정일이 지난 리플레이</div></div>
+      <div class="card stat-card"><div class="label">다음 복기 예정</div>
+        <div class="value" style="font-size:18px">${(DB.replays.filter(p=>!p.completedDate).sort((a,b)=>a.scheduledDate.localeCompare(b.scheduledDate))[0]||{}).scheduledDate||'-'}</div>
+        <div class="sub">1개월 → 3개월 → 6개월 순서로 진행</div></div>
+    </div>
+    ${targets.length? targets.map(r=>renderReplayCard(r,today)).join('') : `<div class="card"><div class="empty">리플레이 대상이 없습니다.<br>매수·추가매수 기록을 남기면 1/3/6개월 복기 일정이 자동 생성됩니다.</div></div>`}`;
+  }
+};
+function renderReplayCard(r, today){
+  const rps = replaysOf(r.id).sort((a,b)=>a.scheduledDate.localeCompare(b.scheduledDate));
+  const lastDone = [...rps].reverse().find(p=>p.completedDate);
+  const ret = lastDone ? lastDone.currentReturn : null;
+  const score = lastDone && lastDone.updatedJudgmentScore!=null ? lastDone.updatedJudgmentScore : (scoreOf(r.id)||{}).totalScore;
+  const verdict = replayVerdict(ret, score);
+  return `<div class="card" style="margin-bottom:16px">
+    <h3><span>${esc(r.name)} <span class="muted" style="font-weight:500;font-size:12px">${r.date} ${r.actionType} · ${r.amount?fmt(r.amount):''}</span></span></h3>
+    <div class="grid cols2">
+      <div>
+        <div class="list-item"><span class="muted">투자 가설</span><span style="text-align:right;max-width:70%">${esc(r.hypothesis)||'-'}</span></div>
+        <div class="list-item"><span class="muted">매수 당시 감정</span><span>${esc(r.emotion)||'-'}</span></div>
+        <div class="list-item"><span class="muted">재검토 기준</span><span style="text-align:right;max-width:70%">${esc(r.reviewCriteria)||'-'}</span></div>
+        ${lastDone?`
+        <div class="divider"></div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+          <div><span class="muted" style="font-size:12px">현재 수익률</span><br><span class="score-badge ${pnlCls(ret)}" style="font-size:21px">${fmtPct(ret,true)}</span></div>
+          <div><span class="muted" style="font-size:12px">판단 점수</span><br><span class="score-badge" style="font-size:21px">${score!=null?score+'점':'-'}</span></div>
+          <span class="badge ${verdict.cls}" style="white-space:normal;line-height:1.5">${verdict.text}</span>
+        </div>`:''}
+      </div>
+      <div>
+        ${rps.map(p=>{
+          const state = p.completedDate ? 'done' : (p.scheduledDate<=today ? 'due' : 'wait');
+          return `<div class="list-item">
+            <div><span class="dot ${state==='done'?'done':state==='due'?'due':''}"></span> <b>${p.replayType} 복기</b>
+              <span class="muted" style="font-size:12px">예정 ${p.scheduledDate}${p.completedDate?' · 완료 '+p.completedDate:''}</span>
+              ${p.completedDate?`<br><span class="muted" style="font-size:12px">가설 ${esc(p.hypothesisStatus)} · 수익률 ${fmtPct(p.currentReturn,true)} · 다음 행동: ${esc(p.nextAction)}</span>`:''}</div>
+            ${p.completedDate
+              ? `<button class="btn btn-sm" onclick="openReplayForm('${p.id}')">보기/수정</button>`
+              : `<button class="btn btn-sm ${state==='due'?'btn-primary':''}" onclick="openReplayForm('${p.id}')">복기 작성</button>`}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+function openReplayForm(replayId){
+  const p = DB.replays.find(x=>x.id===replayId); if(!p) return;
+  const r = DB.records.find(x=>x.id===p.investmentRecordId)||{};
+  openModal(`<h2>${esc(r.name)} · ${p.replayType} 복기</h2>
+  <div class="notice">매수 당시 가설: ${esc(r.hypothesis)||'(기록 없음)'}<br>재검토 기준: ${esc(r.reviewCriteria)||'(기록 없음)'}</div>
+  <form id="replayForm" onsubmit="return false"><div class="form-grid">
+    <div class="field"><label>매수 당시 가설은 유지되는가?</label><select name="hypothesisStatus">
+      ${['유지','일부 훼손','완전 훼손'].map(v=>`<option ${p.hypothesisStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>현재 수익률 (%)</label><input name="currentReturn" type="number" step="any" value="${p.currentReturn==null?'':p.currentReturn}"></div>
+    <div class="field"><label>수익/손실의 주된 원인</label><select name="profitLossReason">
+      ${['실적','시장 전체 상승/하락','환율','테마 과열','운','기타'].map(v=>`<option ${p.profitLossReason===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>처음 정한 기준을 지켰는가?</label><select name="followedOriginalCriteria">
+      ${['예','일부','아니오'].map(v=>`<option ${p.followedOriginalCriteria===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>감정 매매가 있었는가?</label><select name="emotionalTrading">
+      ${['아니오','예'].map(v=>`<option ${p.emotionalTrading===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>다음 행동</label><select name="nextAction">
+      ${['보유','추가매수','축소','매도','관망'].map(v=>`<option ${p.nextAction===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>판단 점수 재평가 (0~100)</label><input name="updatedJudgmentScore" type="number" min="0" max="100" value="${p.updatedJudgmentScore==null?'':p.updatedJudgmentScore}"></div>
+    <div class="field full"><label>복기 메모</label><textarea name="replayMemo">${esc(p.replayMemo)}</textarea></div>
+  </div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">취소</button>
+  <button class="btn btn-primary" onclick="saveReplay('${p.id}')">복기 저장</button></div></form>`);
+}
+function saveReplay(replayId){
+  const p = DB.replays.find(x=>x.id===replayId); if(!p) return;
+  const v = formValues('replayForm');
+  Object.assign(p, v, {
+    currentReturn: v.currentReturn===''?null:Number(v.currentReturn),
+    updatedJudgmentScore: v.updatedJudgmentScore===''?null:Number(v.updatedJudgmentScore),
+    completedDate: p.completedDate || todayStr(),
+    updatedAt: todayStr()
+  });
+  saveDB(); closeModal(); route();
+}
+/* ═══════════════ 관심종목 ═══════════════ */
+const WL_STATE = {priority:'전체', status:'전체'};
+PAGES.watchlist = {
+  render(){
+    const list = DB.watchlist.filter(w =>
+      (WL_STATE.priority==='전체'||w.priority===WL_STATE.priority) &&
+      (WL_STATE.status==='전체'||w.status===WL_STATE.status))
+      .sort((a,b)=>a.priority.localeCompare(b.priority));
+    const hitCnt = DB.watchlist.filter(w=>w.targetEntryPrice&&w.currentPrice&&Number(w.currentPrice)<=Number(w.targetEntryPrice)).length;
+    return pageHead('관심종목','충동매수를 줄이기 위한 매수 후보 관리. 사전에 정한 조건에 맞을 때만 매수를 검토합니다.',
+      `<button class="btn btn-primary" onclick="openWatchForm()">＋ 종목 추가</button>`) + `
+    ${hitCnt?`<div class="notice">목표 진입가에 도달한 종목이 ${hitCnt}개 있습니다. 매수 조건 충족 여부를 확인해 보세요.</div>`:''}
+    <div class="card">
+      <div class="filters">
+        <select onchange="WL_STATE.priority=this.value;route()">${['전체','A','B','C'].map(v=>`<option ${WL_STATE.priority===v?'selected':''}>${v}</option>`).join('')}</select>
+        <select onchange="WL_STATE.status=this.value;route()">${['전체','관찰','매수 후보','보류','제외'].map(v=>`<option ${WL_STATE.status===v?'selected':''}>${v}</option>`).join('')}</select>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>종목</th><th>우선순위</th><th>상태</th><th class="num">목표 진입가</th><th class="num">현재가</th><th>도달 여부</th><th>매수 조건</th><th></th></tr></thead>
+        <tbody>${list.length? list.map(w=>{
+          const hit = w.targetEntryPrice&&w.currentPrice&&Number(w.currentPrice)<=Number(w.targetEntryPrice);
+          const gap = w.targetEntryPrice&&w.currentPrice ? (Number(w.currentPrice)-Number(w.targetEntryPrice))/Number(w.targetEntryPrice)*100 : null;
+          return `<tr>
+            <td><b>${esc(w.name)}</b><br><span class="muted" style="font-size:12px">${esc(w.ticker)} · ${esc(w.market)} · ${esc(w.theme)}</span></td>
+            <td><span class="badge ${w.priority==='A'?'badge-blue':'badge-gray'}">${w.priority}</span></td>
+            <td><span class="badge ${w.status==='매수 후보'?'badge-green':w.status==='제외'?'badge-red':'badge-gray'}">${w.status}</span></td>
+            <td class="num">${fmtNum(w.targetEntryPrice)}</td><td class="num">${fmtNum(w.currentPrice)}</td>
+            <td>${hit?'<span class="badge badge-green">도달</span>':`<span class="muted" style="font-size:12px">${gap!=null?'목표가까지 '+fmtPct(gap,true):'-'}</span>`}</td>
+            <td style="white-space:normal;max-width:220px;font-size:12px">${esc(w.buyCondition)||'-'}</td>
+            <td><button class="btn btn-sm" onclick="watchToRecord('${w.id}')">기록·점수 작성</button>
+                <button class="btn btn-sm" onclick="openWatchForm('${w.id}')">수정</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteWatch('${w.id}')">삭제</button></td></tr>`;
+        }).join('') : '<tr><td colspan="8"><div class="empty">관심종목이 없습니다</div></td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+  }
+};
+function openWatchForm(id){
+  const w = id ? DB.watchlist.find(x=>x.id===id) : {name:'',ticker:'',market:'국내',theme:'',reason:'',targetEntryPrice:'',currentPrice:'',buyCondition:'',risk:'',priority:'B',status:'관찰',memo:''};
+  openModal(`<h2>${id?'관심종목 수정':'관심종목 추가'}</h2>
+  <form id="watchForm" onsubmit="return false"><div class="form-grid">
+    <div class="field"><label>종목명</label><input name="name" value="${esc(w.name)}"></div>
+    <div class="field"><label>티커</label><input name="ticker" value="${esc(w.ticker)}"></div>
+    <div class="field"><label>시장</label><select name="market">${['국내','미국','기타'].map(v=>`<option ${w.market===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>관심 분야</label><input name="theme" value="${esc(w.theme)}"></div>
+    <div class="field"><label>목표 진입가</label><input name="targetEntryPrice" type="number" step="any" value="${w.targetEntryPrice}"></div>
+    <div class="field"><label>현재가</label><input name="currentPrice" type="number" step="any" value="${w.currentPrice}"></div>
+    <div class="field"><label>우선순위</label><select name="priority">${['A','B','C'].map(v=>`<option ${w.priority===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>현재 상태</label><select name="status">${['관찰','매수 후보','보류','제외'].map(v=>`<option ${w.status===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field full"><label>관심 이유</label><textarea name="reason">${esc(w.reason)}</textarea></div>
+    <div class="field full"><label>매수 조건</label><textarea name="buyCondition">${esc(w.buyCondition)}</textarea></div>
+    <div class="field full"><label>위험 요소</label><textarea name="risk">${esc(w.risk)}</textarea></div>
+    <div class="field full"><label>메모</label><textarea name="memo">${esc(w.memo)}</textarea></div>
+  </div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">취소</button>
+  <button class="btn btn-primary" onclick="saveWatch('${id||''}')">저장</button></div></form>`);
+}
+function saveWatch(id){
+  const v = formValues('watchForm');
+  if(!v.name){ alert('종목명을 입력해 주세요.'); return; }
+  if(id){ Object.assign(DB.watchlist.find(x=>x.id===id), v, {updatedAt:todayStr()}); }
+  else{ DB.watchlist.push({id:uid(), ...v, createdAt:todayStr(), updatedAt:todayStr()}); }
+  saveDB(); closeModal(); route();
+}
+function deleteWatch(id){
+  if(!confirm('이 관심종목을 삭제할까요?')) return;
+  DB.watchlist = DB.watchlist.filter(w=>w.id!==id); saveDB(); route();
+}
+function watchToRecord(id){
+  const w = DB.watchlist.find(x=>x.id===id); if(!w) return;
+  location.hash = 'records';
+  setTimeout(()=>{
+    openRecordForm();
+    const f = document.getElementById('recForm');
+    if(f){ f.querySelector('[name=name]').value = w.name; f.querySelector('[name=ticker]').value = w.ticker;
+      f.querySelector('[name=reason]').value = w.reason||''; f.querySelector('[name=risk]').value = w.risk||''; }
+  }, 60);
+}
+
+/* ═══════════════ 월간계획 ═══════════════ */
+PAGES.plan = {
+  render(){
+    const thisYm = ym();
+    const plan = DB.plans.find(p=>p.yearMonth===thisYm);
+    const invested = monthInvested(thisYm);
+    const rt = ratioByType();
+    return pageHead('월간계획','"이번 달 뭘 살까"를 감정이 아니라 목표 비중 기준으로 결정합니다.',
+      `<button class="btn btn-primary" onclick="openPlanForm()">${plan?'이번 달 계획 수정':'＋ 이번 달 계획 세우기'}</button>`) + `
+    ${plan? `
+    <div class="grid cols3" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="label">${thisYm} 월 투자 가능 금액</div><div class="value">${fmt(plan.monthlyBudget)}</div>
+        <div class="sub">투자 예정일 ${plan.plannedInvestmentDate||'-'}</div></div>
+      <div class="card stat-card"><div class="label">이번 달 집행액</div><div class="value">${fmt(invested)}</div>
+        <div class="sub">투자기록의 매수·추가매수 합계</div></div>
+      <div class="card stat-card"><div class="label">계획 완료율</div>
+        <div class="value">${fmtPct(plan.monthlyBudget?invested/plan.monthlyBudget*100:0)}</div>
+        <div class="progress" style="margin:8px 0 6px"><div style="width:${Math.min(plan.monthlyBudget?invested/plan.monthlyBudget*100:0,100)}%"></div></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px"><h3>현재 비중 vs 목표 비중 · 이번 달 배분안</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>자산군</th><th class="num">현재 비중</th><th class="num">목표 비중</th><th class="num">차이</th><th>판단</th><th class="num">제안 배분액</th></tr></thead>
+        <tbody>${planRows(plan, rt).map(row=>`<tr>
+          <td><b>${row.type}</b></td>
+          <td class="num">${fmtPct(row.cur)}</td><td class="num">${fmtPct(row.target)}</td>
+          <td class="num ${row.gap>0?'up':row.gap<0?'down':'muted'}">${fmtPct(row.gap,true)}</td>
+          <td><span class="badge ${row.badgeCls}">${row.label}</span></td>
+          <td class="num"><b>${row.amount?fmt(row.amount):'-'}</b></td></tr>`).join('')}</tbody>
+      </table></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">목표 비중보다 부족한 자산군에 예산을 비례 배분한 참고용 제안입니다. 실제 매수 판단 전 판단점수 점검을 권장합니다.</div>
+    </div>
+    <div class="grid cols2">
+      <div class="card"><h3>이번 달 우선순위</h3><p style="white-space:pre-wrap">${esc(plan.priority)||'-'}</p>
+        ${plan.memo?`<div class="divider"></div><p class="muted" style="font-size:13px;white-space:pre-wrap">${esc(plan.memo)}</p>`:''}
+        <div style="margin-top:14px"><a class="btn btn-primary" style="text-decoration:none" href="#records" onclick="setTimeout(openRecordForm,60)">투자기록 작성으로 이동</a></div>
+      </div>
+      <div class="card"><h3>지난 계획</h3>
+        ${DB.plans.filter(p=>p.yearMonth!==thisYm).sort((a,b)=>b.yearMonth.localeCompare(a.yearMonth)).slice(0,6).map(p=>{
+          const inv = monthInvested(p.yearMonth);
+          return `<div class="list-item"><div><b>${p.yearMonth}</b><br><span class="muted" style="font-size:12px">${esc(p.priority)}</span></div>
+          <div style="text-align:right">${fmt(inv)} / ${fmt(p.monthlyBudget)}<br><span class="muted" style="font-size:12px">완료율 ${fmtPct(p.monthlyBudget?inv/p.monthlyBudget*100:0)}</span></div></div>`;
+        }).join('')||'<div class="empty">지난 계획이 없습니다</div>'}
+      </div>
+    </div>`
+    : `<div class="card"><div class="empty">아직 ${thisYm} 계획이 없습니다.<br><br><button class="btn btn-primary" onclick="openPlanForm()">이번 달 계획 세우기</button></div></div>`}`;
+  }
+};
+function planRows(plan, rt){
+  const defs = [
+    {type:'ETF', cur:rt['ETF']+ (rt['배당주']||0), target:Number(plan.targetEtfRatio)||0},
+    {type:'개별주', cur:rt['개별주']||0, target:Number(plan.targetStockRatio)||0},
+    {type:'테마주', cur:rt['테마주']||0, target:Number(plan.targetThemeRatio)||0},
+    {type:'현금', cur:rt['현금']||0, target:Number(plan.targetCashRatio)||0}
+  ];
+  defs.forEach(d=>d.gap = d.target - d.cur);
+  const posSum = defs.filter(d=>d.type!=='현금'&&d.gap>0).reduce((s,d)=>s+d.gap,0);
+  defs.forEach(d=>{
+    if(d.type==='현금'){ d.label = d.gap>2?'현금 확보 필요':'적정'; d.badgeCls = d.gap>2?'badge-orange':'badge-gray'; d.amount = 0; return; }
+    if(d.gap >= 2){ d.label='매수 우선'; d.badgeCls='badge-green'; d.amount = posSum? Math.round(plan.monthlyBudget * d.gap/posSum /1000)*1000 : 0; }
+    else if(d.gap > -2){ d.label='매수 보류'; d.badgeCls='badge-gray'; d.amount = 0; }
+    else { d.label='추가매수 제외 (비중 초과)'; d.badgeCls='badge-red'; d.amount = 0; }
+  });
+  return defs;
+}
+function openPlanForm(){
+  const thisYm = ym();
+  const p = DB.plans.find(x=>x.yearMonth===thisYm) ||
+    {yearMonth:thisYm, monthlyBudget:DB.settings.monthlyInvestmentTarget,
+     targetEtfRatio:DB.settings.targetEtfRatio, targetStockRatio:DB.settings.targetStockRatio,
+     targetThemeRatio:DB.settings.targetThemeRatio, targetCashRatio:DB.settings.targetCashRatio,
+     priority:'', plannedInvestmentDate:'', memo:''};
+  openModal(`<h2>${thisYm} 월간 투자 계획</h2>
+  <form id="planForm" onsubmit="return false"><div class="form-grid">
+    <div class="field"><label>월 투자 가능 금액 (원)</label><input name="monthlyBudget" type="number" value="${p.monthlyBudget}"></div>
+    <div class="field"><label>투자 예정일</label><input name="plannedInvestmentDate" type="date" value="${p.plannedInvestmentDate}"></div>
+    <div class="field"><label>목표 ETF 비중 (%)</label><input name="targetEtfRatio" type="number" value="${p.targetEtfRatio}"></div>
+    <div class="field"><label>목표 개별주 비중 (%)</label><input name="targetStockRatio" type="number" value="${p.targetStockRatio}"></div>
+    <div class="field"><label>목표 테마주 비중 (%)</label><input name="targetThemeRatio" type="number" value="${p.targetThemeRatio}"></div>
+    <div class="field"><label>목표 현금 비중 (%)</label><input name="targetCashRatio" type="number" value="${p.targetCashRatio}"></div>
+    <div class="field full"><label>이번 달 우선순위</label><textarea name="priority">${esc(p.priority)}</textarea></div>
+    <div class="field full"><label>메모</label><textarea name="memo">${esc(p.memo)}</textarea></div>
+  </div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">취소</button>
+  <button class="btn btn-primary" onclick="savePlan()">저장</button></div></form>`);
+}
+function savePlan(){
+  const thisYm = ym();
+  const v = formValues('planForm');
+  const sum = (Number(v.targetEtfRatio)||0)+(Number(v.targetStockRatio)||0)+(Number(v.targetThemeRatio)||0)+(Number(v.targetCashRatio)||0);
+  if(sum !== 100 && !confirm('목표 비중 합계가 '+sum+'%입니다. 100%가 아니어도 저장할까요?')) return;
+  const ex = DB.plans.find(x=>x.yearMonth===thisYm);
+  if(ex){ Object.assign(ex, v, {updatedAt:todayStr()}); }
+  else{ DB.plans.push({id:uid(), yearMonth:thisYm, ...v, createdAt:todayStr(), updatedAt:todayStr()}); }
+  saveDB(); closeModal(); route();
+}
+
+/* ═══════════════ 통계 ═══════════════ */
+PAGES.stats = {
+  render(){
+    const done = DB.replays.filter(p=>p.completedDate);
+    const all = DB.replays.length;
+    const avgScore = DB.scores.length? DB.scores.reduce((s,x)=>s+x.totalScore,0)/DB.scores.length : null;
+    const emotional = DB.records.filter(r=>['FOMO','공포'].includes(r.emotion)).length;
+    const emoRate = DB.records.length? emotional/DB.records.length*100 : 0;
+    // 수익/손실 난 투자의 판단점수 평균 (완료된 리플레이 기준)
+    const winScores=[], loseScores=[];
+    DB.records.forEach(r=>{
+      const sc = scoreOf(r.id); if(!sc) return;
+      const last = replaysOf(r.id).filter(p=>p.completedDate&&p.currentReturn!=null).sort((a,b)=>b.scheduledDate.localeCompare(a.scheduledDate))[0];
+      if(!last) return;
+      (last.currentReturn>=0? winScores : loseScores).push(sc.totalScore);
+    });
+    const avg = arr=>arr.length? arr.reduce((s,x)=>s+x,0)/arr.length : null;
+    return pageHead('통계 · 리포트','수익률뿐 아니라 투자 습관이 개선되고 있는지 확인하는 곳입니다.',
+      `<button class="btn" onclick="saveSnapshot()">이번 달 자산 스냅샷 저장</button>`) + `
+    <div class="grid cols4" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="label">판단 점수 평균</div><div class="value">${avgScore!=null?Math.round(avgScore)+'점':'-'}</div><div class="sub">${DB.scores.length}건 평가</div></div>
+      <div class="card stat-card"><div class="label">리플레이 완료율</div><div class="value">${fmtPct(all?done.length/all*100:0)}</div><div class="sub">${done.length}/${all}건</div></div>
+      <div class="card stat-card"><div class="label">감정 매매 비율</div><div class="value ${emoRate>20?'warn':''}">${fmtPct(emoRate)}</div><div class="sub">FOMO·공포 상태 기록 비율</div></div>
+      <div class="card stat-card"><div class="label">수익 vs 손실 투자의 판단점수</div>
+        <div class="value" style="font-size:19px"><span class="up">${avg(winScores)!=null?Math.round(avg(winScores))+'점':'-'}</span> / <span class="down">${avg(loseScores)!=null?Math.round(avg(loseScores))+'점':'-'}</span></div>
+        <div class="sub">수익 난 투자 / 손실 난 투자 평균</div></div>
+    </div>
+    <div class="grid cols2" style="margin-bottom:16px">
+      <div class="card"><h3>월별 총자산 추이</h3><div class="chart-box"><canvas id="stTrend"></canvas></div></div>
+      <div class="card"><h3>월별 투자금</h3><div class="chart-box"><canvas id="stInvest"></canvas></div></div>
+    </div>
+    <div class="grid cols2" style="margin-bottom:16px">
+      <div class="card"><h3>자산군별 비중</h3><div class="chart-box"><canvas id="stType"></canvas></div></div>
+      <div class="card"><h3>판단 점수 추이</h3><div class="chart-box"><canvas id="stScore"></canvas></div></div>
+    </div>
+    <div class="grid cols2" style="margin-bottom:16px">
+      <div class="card"><h3>감정 상태별 투자 결과</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>감정 상태</th><th class="num">기록 수</th><th class="num">평균 판단점수</th><th class="num">평균 수익률(복기 기준)</th></tr></thead>
+          <tbody>${emotionRows().map(e=>`<tr><td><b>${e.emotion}</b></td><td class="num">${e.count}</td>
+            <td class="num">${e.avgScore!=null?Math.round(e.avgScore)+'점':'-'}</td>
+            <td class="num ${pnlCls(e.avgReturn)}">${e.avgReturn!=null?fmtPct(e.avgReturn,true):'-'}</td></tr>`).join('')}</tbody>
+        </table></div></div>
+      <div class="card"><h3>종목별 평가손익</h3>
+        ${DB.assets.filter(a=>a.assetType!=='현금').sort((a,b)=>profitAmt(b)-profitAmt(a)).map(a=>`<div class="list-item">
+          <b>${esc(a.name)}</b><div style="text-align:right"><span class="${pnlCls(profitAmt(a))}">${fmt(profitAmt(a))}</span>
+          <span class="${pnlCls(returnPct(a))}" style="font-size:12px;font-weight:700"> (${fmtPct(returnPct(a),true)})</span></div></div>`).join('')||'<div class="empty">보유 종목 없음</div>'}
+      </div>
+    </div>
+    <div class="card"><h3>월간 리포트 요약 (${ym()})</h3>
+      <p style="line-height:1.9">
+      이번 달 투자금은 <b>${fmt(monthInvested(ym()))}</b>이며, 현재 총자산은 <b>${fmt(totalAsset())}</b>입니다.
+      올해 목표(${fmt(DB.settings.yearlyTargetAsset)}) 대비 달성률은 <b>${fmtPct(DB.settings.yearlyTargetAsset?totalAsset()/DB.settings.yearlyTargetAsset*100:0)}</b>입니다.
+      판단 점수 평균은 <b>${avgScore!=null?Math.round(avgScore)+'점':'평가 없음'}</b>, 리플레이 완료율은 <b>${fmtPct(all?done.length/all*100:0)}</b>입니다.
+      ${emoRate>20?'<span class="warn">감정 매매(FOMO·공포) 비율이 20%를 넘습니다. 매수 전 판단점수 체크를 권장합니다.</span>':'감정 매매 비율이 관리 범위 안에 있습니다.'}
+      </p></div>`;
+  },
+  after(){
+    const labels = DB.snapshots.map(s=>s.yearMonth); const data = DB.snapshots.map(s=>s.totalAsset);
+    drawChart('stTrend',{type:'line',data:{labels,datasets:[{data,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',fill:true,tension:.35}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>(v/10000).toLocaleString()+'만'}}}}});
+    const months = [...new Set(DB.records.filter(r=>['매수','추가매수','배당 재투자'].includes(r.actionType)).map(r=>ym(r.date)))].sort();
+    drawChart('stInvest',{type:'bar',data:{labels:months,datasets:[{data:months.map(m=>monthInvested(m)),backgroundColor:'#60a5fa',borderRadius:6}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>(v/10000).toLocaleString()+'만'}}}}});
+    const rt = ratioByType(); const tk = Object.keys(rt).filter(k=>rt[k]>0);
+    drawChart('stType',{type:'doughnut',data:{labels:tk,datasets:[{data:tk.map(k=>Math.round(rt[k]*10)/10),backgroundColor:CHART_COLORS}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}},cutout:'62%'}});
+    const ss = [...DB.scores].sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+    drawChart('stScore',{type:'line',data:{labels:ss.map(s=>s.createdAt),datasets:[{data:ss.map(s=>s.totalScore),borderColor:'#16a34a',tension:.3,pointRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:100}}}});
+  }
+};
+function emotionRows(){
+  const emotions = ['확신','불안','FOMO','공포','기계적 매수','중립'];
+  return emotions.map(em=>{
+    const recs = DB.records.filter(r=>r.emotion===em);
+    const scores = recs.map(r=>scoreOf(r.id)).filter(Boolean).map(s=>s.totalScore);
+    const rets = recs.map(r=>replaysOf(r.id).filter(p=>p.completedDate&&p.currentReturn!=null)
+      .sort((a,b)=>b.scheduledDate.localeCompare(a.scheduledDate))[0]).filter(Boolean).map(p=>p.currentReturn);
+    const avg = arr=>arr.length? arr.reduce((s,x)=>s+x,0)/arr.length : null;
+    return {emotion:em, count:recs.length, avgScore:avg(scores), avgReturn:avg(rets)};
+  }).filter(e=>e.count>0);
+}
+function saveSnapshot(){
+  const m = ym();
+  const ex = DB.snapshots.find(s=>s.yearMonth===m);
+  if(ex) ex.totalAsset = totalAsset();
+  else DB.snapshots.push({yearMonth:m, totalAsset:totalAsset()});
+  DB.snapshots.sort((a,b)=>a.yearMonth.localeCompare(b.yearMonth));
+  saveDB(); alert(m+' 스냅샷이 저장되었습니다: '+fmt(totalAsset())); route();
+}
+
+/* ═══════════════ 설정 ═══════════════ */
+PAGES.settings = {
+  render(){
+    const s = DB.settings;
+    return pageHead('설정','투자 목표와 기본 기준을 설정합니다.') + `
+    <div class="grid cols2">
+      <div class="card"><h3>목표 설정</h3>
+        <form id="setForm" onsubmit="return false"><div class="form-grid">
+          <div class="field"><label>올해 목표 자산 (원)</label><input name="yearlyTargetAsset" type="number" value="${s.yearlyTargetAsset}"></div>
+          <div class="field"><label>월 투자 목표 (원)</label><input name="monthlyInvestmentTarget" type="number" value="${s.monthlyInvestmentTarget}"></div>
+          <div class="field"><label>목표 월 배당금 (원)</label><input name="monthlyDividendTarget" type="number" value="${s.monthlyDividendTarget}"></div>
+          <div class="field"><label>기본 통화</label><select name="baseCurrency"><option ${s.baseCurrency==='KRW'?'selected':''}>KRW</option></select></div>
+          <div class="field"><label>목표 ETF 비중 (%)</label><input name="targetEtfRatio" type="number" value="${s.targetEtfRatio}"></div>
+          <div class="field"><label>목표 개별주 비중 (%)</label><input name="targetStockRatio" type="number" value="${s.targetStockRatio}"></div>
+          <div class="field"><label>목표 테마주 비중 (%)</label><input name="targetThemeRatio" type="number" value="${s.targetThemeRatio}"></div>
+          <div class="field"><label>목표 현금 비중 (%)</label><input name="targetCashRatio" type="number" value="${s.targetCashRatio}"></div>
+          <div class="field"><label>종목별 최대 비중 (%)</label><input name="maxSingleStockRatio" type="number" value="${s.maxSingleStockRatio}"></div>
+          <div class="field"><label>테마별 최대 비중 (%)</label><input name="maxThemeRatio" type="number" value="${s.maxThemeRatio}"></div>
+          <div class="field"><label>환율 기준 (KRW/USD)</label><input name="exchangeRate" type="number" step="any" value="${s.exchangeRate}"></div>
+          <div class="field"><label>복기 알림 주기</label>
+            <div style="display:flex;gap:12px;padding:9px 0">
+              ${[1,3,6].map(m=>`<label style="font-weight:500;font-size:13px;color:var(--text)"><input type="checkbox" class="rpPeriod" value="${m}" ${s.replayPeriods.includes(m)?'checked':''}> ${m}개월</label>`).join('')}
+            </div></div>
+        </div>
+        <div style="margin-top:16px;text-align:right"><button class="btn btn-primary" onclick="saveSettings()">설정 저장</button></div>
+        </form>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px"><h3>데이터 백업</h3>
+          <p class="muted" style="font-size:13px;margin-bottom:14px">모든 데이터는 이 브라우저의 localStorage에 저장됩니다. 정기적으로 JSON 백업을 내려받아 보관하세요.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="exportData()">JSON 백업 다운로드</button>
+            <label class="btn" style="display:inline-block">백업 불러오기<input type="file" accept=".json" style="display:none" onchange="importData(this)"></label>
+          </div>
+        </div>
+        <div class="card"><h3>데이터 초기화</h3>
+          <p class="muted" style="font-size:13px;margin-bottom:14px">샘플 데이터를 삭제하고 빈 상태로 시작하거나, 샘플 데이터를 다시 불러올 수 있습니다.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-danger" onclick="clearAll()">모든 데이터 삭제 (빈 상태로)</button>
+            <button class="btn" onclick="resetSeed()">샘플 데이터로 초기화</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+};
+function saveSettings(){
+  const v = formValues('setForm');
+  const periods = [...document.querySelectorAll('.rpPeriod:checked')].map(c=>Number(c.value));
+  Object.assign(DB.settings, v, {replayPeriods: periods.length?periods:[1,3,6]});
+  saveDB(); alert('설정이 저장되었습니다.'); route();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'investOS_backup_'+todayStr()+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.assets || !data.settings) throw new Error('형식 오류');
+      DB = data; DB.settings = {...DEFAULT_SETTINGS, ...DB.settings};
+      saveDB(); alert('백업을 불러왔습니다.'); route();
+    }catch(err){ alert('백업 파일을 읽을 수 없습니다: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+function clearAll(){
+  if(!confirm('모든 데이터를 삭제하고 빈 상태로 시작할까요? 삭제 전 백업을 권장합니다.')) return;
+  DB = {settings:{...DEFAULT_SETTINGS}, assets:[], records:[], scores:[], replays:[], watchlist:[], plans:[], snapshots:[]};
+  saveDB(); route();
+}
+function resetSeed(){
+  if(!confirm('현재 데이터를 삭제하고 샘플 데이터로 초기화할까요?')) return;
+  DB = seedData(); saveDB(); route();
+}
+
+/* ═══════════════ 자동매매 (준비중) ═══════════════ */
+PAGES.auto = {
+  render(){
+    return pageHead('자동매매 기능 준비중','') + `
+    <div class="card" style="max-width:720px">
+      <div style="font-size:40px;margin-bottom:12px">🤖</div>
+      <h3 style="font-size:18px">자동매매 기능 준비중</h3>
+      <p style="line-height:1.8;color:var(--muted)">
+        자동매매 기능은 증권사 API 연동, 모의투자 검증, 리스크 제한 기능이 필요한 고위험 기능입니다.
+        현재 1차 MVP에서는 제공하지 않으며, 향후 승인형 자동매매와 모의투자 검증을 거친 뒤 추가될 예정입니다.
+      </p>
+      <div class="divider"></div>
+      <h3 style="font-size:14px">제공 예정 기능</h3>
+      <div class="grid cols2">
+        ${['월간 리밸런싱 자동매수','관심종목 목표가 도달 알림','승인형 자동주문','모의투자 모드','주문 로그','긴급 정지 버튼','일일 주문 한도','종목별 최대 비중 제한']
+          .map(f=>`<div class="list-item"><span>· ${f}</span><span class="badge badge-orange">예정</span></div>`).join('')}
+      </div>
+    </div>`;
+  }
+};
+
+/* ═══════════════ 초기화 ═══════════════ */
+loadDB();
+const md = document.getElementById('mobileDate');
+if(md) md.textContent = todayStr();
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body></html>
